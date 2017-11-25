@@ -37,7 +37,7 @@ while True:
     elif nv > 0.90:
         nv = 0.90
     else:
-        print("[" + str(datetime.datetime.now()) + "] " + "{:0.2f}".formav(nv))
+        print("[" + str(datetime.datetime.now()) + "] " + "{:0.2f}".format(nv))
 
     graph.value = nv
 
