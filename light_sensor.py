@@ -22,20 +22,33 @@ def send_sms(dest, body):
 did = DigitalInputDevice(18)
 graph = LEDBarGraph(27, 26, 25, 24, 23, pwm=True)
 
-off_threshold = 0.2
-on_threshold = 0.8
+off_threshold = 0.75
+on_threshold = 0.95
 
 old = 1
 nv = 1
 st = 1
+tau = 10.0
+delta = 0.0
+
+print("Startup: [" + str(datetime.datetime.now()) + "]")
 
 while True:
+
     val = did.value
-    nv = (btoi(val) - old)/10.0 + old
-    if nv < 0.10:
-        nv = 0.10
-    elif nv > 0.90:
-        nv = 0.90
+    delta = btoi(val)-old
+    
+    if delta < 0.0:
+         tau=3.0
+    else:
+         tau=10.0
+         
+    nv = delta/tau + old
+
+    if nv < 0.01:
+        nv = 0.01
+    elif nv > 0.99:
+        nv = 0.99
     else:
         print("[" + str(datetime.datetime.now()) + "] " + "{:0.2f}".format(nv))
 
@@ -51,7 +64,7 @@ while True:
         send_sms(os.environ['DFM_CELL'], body)
         send_sms(os.environ['LRM_CELL'], body)
         
-    sleep(0.5)
+    sleep(0.2)
     old = nv
 
     
