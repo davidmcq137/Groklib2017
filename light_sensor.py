@@ -31,7 +31,7 @@ st = 1
 tau = 10.0
 delta = 0.0
 
-print("Startup: [" + str(datetime.datetime.now()) + "]")
+print("Startup: [" + str(datetime.datetime.now()) + "] UTC")
 
 while True:
 
@@ -41,7 +41,7 @@ while True:
     if delta < 0.0:
          tau=3.0
     else:
-         tau=10.0
+         tau=20.0
          
     nv = delta/tau + old
 
@@ -49,8 +49,9 @@ while True:
         nv = 0.01
     elif nv > 0.99:
         nv = 0.99
-    else:
-        print("[" + str(datetime.datetime.now()) + "] " + "{:0.2f}".format(nv))
+
+    #if (nv > off_threshold/10.) and (nv < on_threshold):
+    #    print("{:0.2f}".format(nv))
 
     graph.value = nv
 
@@ -60,6 +61,7 @@ while True:
     elif nv > old and nv > on_threshold:
         st = 1
     if last_st != st:
+        print("[" + str(datetime.datetime.now()) + "] UTC. Input = " + "{:0.2f}".format(nv) + "% Generator is " + ["ON", "OFF"][st])
         body = "generator is " + ["ON", "OFF"][st]
         send_sms(os.environ['DFM_CELL'], body)
         send_sms(os.environ['LRM_CELL'], body)
