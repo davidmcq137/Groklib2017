@@ -12,6 +12,7 @@ print("Foo is: ", foo)
 print config.get('KEYS', 'client_id')
 print config.get('KEYS', 'client_secret')
 
+#these keys were exposed and replaced
 
 client_id = 'ee1d8567-1b58-4e07-a393-fae8a0aa4a28'
 client_secret = 'ActeHqIx07OJY7T9Wwc3wjZTI'
