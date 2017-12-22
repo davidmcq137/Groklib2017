@@ -49,6 +49,7 @@ while True:
             for device in structure.thermostats:
                 print(device.name)
                 if (device.name=='Downstairs'):
+                     DS_TARGET = device.target
                      if (str(device.hvac_state) == 'heating'):
                          DS_HVAC_STATE = 1.0
                      else:
@@ -95,6 +96,9 @@ while True:
         statsd.gauge('DS_HVAC', DS_HVAC_STATE)
         print ("Downstairs statsd was called with: " + str(DS_HVAC_STATE))
 
+        statsd.gauge('DS_TARGET', DS_TARGET)
+        print ("Downstairs Target statsd was called with: " + str(DS_TARGET))
+
         statsd.gauge('US_HVAC', US_HVAC_STATE)
         print ("Upstairs statsd was called with: " + str(US_HVAC_STATE))
 
@@ -119,7 +123,7 @@ while True:
         statsd.gauge('ST_DELTA', ST_DELTA)
         print ("Studio statsd called with delta: ", str(ST_DELTA))
 
-    time.sleep(10)
+    time.sleep(20)
 pass
 
 

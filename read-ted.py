@@ -71,7 +71,7 @@ while True:
 
     pnow=float(power_now_result)
     print ("Power now: "+str(pnow))
-    statsd.histogram('Power', pnow)
+    statsd.gauge('Power', pnow)
 
 
 
