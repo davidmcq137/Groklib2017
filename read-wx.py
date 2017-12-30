@@ -6,9 +6,14 @@ from datadog import statsd
 
 Wx_XML_File="/var/www/html/weewx/RSS/weewx_rss.xml"
 
+Davis_WX_Outside_T  = 0.0
+Davis_WX_Inside_T   = 0.0
+Davis_WX_Humidity   = 0.0
+Davis_WX_Barometer  = 0.0
+
 while True:
 
-# Add a Try/Except block here to protect file operations
+# Add a Try/Except block here to protect file operations? Or just let it crash?
 
     f=open(Wx_XML_File, 'r')
     myfile=f.read()
@@ -23,12 +28,24 @@ while True:
 
     lines=current_block_result.splitlines()
 
-# Add another Try/Except block to protect these 4 statements in case of N/A if remote station not responding
+# in case of N/A causing error on float, let it "flatline" at prior value
 
-    Davis_WX_Outside_T  = float(lines[2][34:38])
-    Davis_WX_Inside_T   = float(lines[3][34:38])
-    Davis_WX_Humidity   = float(lines[7][34:36])
-    Davis_WX_Barometer  = float(lines[8][34:40])
+    try:
+        Davis_WX_Outside_T  = float(lines[2][34:38])
+    except:
+        pass
+    try:
+        Davis_WX_Inside_T   = float(lines[3][34:38])
+    except:
+        pass
+    try:
+        Davis_WX_Humidity   = float(lines[7][34:36])
+    except:
+        pass
+    try:
+        Davis_WX_Barometer  = float(lines[8][34:40])
+    except:
+        pass
 
     print(datetime.datetime.now())
     print("Outside T: ", Davis_WX_Outside_T)
