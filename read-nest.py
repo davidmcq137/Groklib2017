@@ -6,6 +6,19 @@ import datetime
 import ConfigParser
 import os
 
+DS_POWER = 5970.0
+US_POWER = 6550.0
+BS_POWER = 10800.0
+AVG_EST_POWER = 0.0
+
+# set up a ring buffer for power samples. this prog's main loop is 20 seconds, so 3/min, 180/hr
+
+RING_SIZE = 1080                     # 6 hours
+FILL_RING = 9400.0                   # make up a value close to what it should be
+power_sample = [FILL_RING]           # declare list, set 0th element
+for i in range(1,RING_SIZE):         # 1 thru RING_SIZE-1 for RING_SIZE elements
+  power_sample.append(FILL_RING)
+
 config=ConfigParser.ConfigParser()
 osp = os.path.expanduser('~/read-nest.conf')
 
@@ -43,6 +56,9 @@ for structure in napi.structures:
         print ('            Temp: %0.1f' % device.temperature)
 
 # Access advanced structure properties:
+
+iring = 0 # average power ring buffer index
+
 while True:
     try:
         for structure in napi.structures:
@@ -90,8 +106,39 @@ while True:
         print ("Time: ["+str(datetime.datetime.now())+"]")
 
         US_HVAC_STATE = MB_HVAC_STATE + UP_HVAC_STATE + ST_HVAC_STATE
+
         if (US_HVAC_STATE != 0.0):
             US_HVAC_STATE = US_HVAC_STATE + 1.0
+
+
+        if US_HVAC_STATE > 1.0:
+            US_CORR = 1.0
+        else:
+            US_CORR = 0.0
+
+        if DS_HVAC_STATE  < 1.0:
+            DS_CORR = 0.0
+        else:
+            DS_CORR = 1.0
+
+        EST_POWER = DS_CORR * DS_POWER + US_CORR * US_POWER + BS_HVAC_STATE * BS_POWER
+
+        power_sample[iring] = EST_POWER #update ring buffer with power samples
+        iring = iring + 1
+        if iring >= RING_SIZE:
+            iring = 0
+
+
+        AVG_EST_POWER = 0.0
+        for i in range(0,RING_SIZE):
+            AVG_EST_POWER = AVG_EST_POWER + power_sample[i]
+        AVG_EST_POWER = AVG_EST_POWER/float(RING_SIZE)
+
+        statsd.gauge('EST_POWER', EST_POWER)
+        print ("Est Power statsd was called with: " + str(EST_POWER))
+
+        statsd.gauge('AVG_EST_POWER', AVG_EST_POWER)
+        print ("Avg Est Power statsd was called with: " + str(AVG_EST_POWER))
 
         statsd.gauge('DS_HVAC', DS_HVAC_STATE)
         print ("Downstairs statsd was called with: " + str(DS_HVAC_STATE))
