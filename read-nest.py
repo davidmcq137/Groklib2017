@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import nest
 import sys
 from datadog import statsd
@@ -10,6 +11,9 @@ DS_POWER = 5970.0
 US_POWER = 6550.0
 BS_POWER = 10800.0
 AVG_EST_POWER = 0.0
+
+with open('/tmp/read-nest.py.pid', 'w') as f:
+    f.write(str(os.getpid()))
 
 # set up a ring buffer for power samples. this prog's main loop is 20 seconds, so 3/min, 180/hr
 
@@ -170,6 +174,7 @@ while True:
         statsd.gauge('ST_DELTA', ST_DELTA)
         print ("Studio statsd called with delta: ", str(ST_DELTA))
 
+    sys.stdout.flush()
     time.sleep(20)
 pass
 

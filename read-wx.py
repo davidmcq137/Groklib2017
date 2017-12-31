@@ -1,4 +1,9 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+
 import re
+import os
 import time
 import sys
 import datetime
@@ -10,6 +15,9 @@ Davis_WX_Outside_T  = 0.0
 Davis_WX_Inside_T   = 0.0
 Davis_WX_Humidity   = 0.0
 Davis_WX_Barometer  = 0.0
+
+with open('/tmp/read-wx.py.pid', 'w') as f:
+    f.write(str(os.getpid()))
 
 while True:
 
@@ -58,7 +66,9 @@ while True:
     statsd.gauge("Humidity", Davis_WX_Humidity)
     statsd.gauge("Barometer", Davis_WX_Barometer)
 
-    time.sleep(300)
+    sys.stdout.flush()
+    time.sleep(100)
+
 
 pass #end while
 
