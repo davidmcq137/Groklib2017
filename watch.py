@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from __future__ import with_statement
 import os
 import sys
 import time
+import signal
 import logging
 import datetime
 import subprocess
@@ -33,6 +35,23 @@ def start(progname):
     if retval != 0:
         raise Exception("non-zero exit(" + str(revtal) + ": " + command)
 
+def handle(progname):
+    try:
+        pidfile = open("/tmp/" + progname + ".pid") 
+    except IOError:
+        print("starting " + progname + " for the first time")
+        start(progname)
+    else:
+        with pidfile:
+            pid = int(pidfile.read())
+            try:
+                kr = os.kill(pid, signal.SIGKILL)
+            except:
+                print(progname + " not running?")
+            else:
+                print("killed " + progname + " (pid " + str(pid) + " + ret = " + str(kr) + ")")
+            start(progname)
+    
 class Handler(FileSystemEventHandler):
     def on_modified(this, event):
         if event.is_directory:
@@ -40,14 +59,12 @@ class Handler(FileSystemEventHandler):
         progname = event.src_path[2:]
         if not progname in watched_files:
             return None
-
-        with open("/tmp/" + progname + ".pid") as pidfile:
-            pid = int(pidfile.read())
-            if is_running(pid):
-                os.kill(pid, 3) # SIGQUIT
-            start(progname)
+        handle(progname)
 
 if __name__ == "__main__":
+    for name, _ in watched_files.iteritems():
+        handle(name)
+        
     observer = Observer()
     observer.schedule(Handler(), ".", recursive=True)
     observer.start()
