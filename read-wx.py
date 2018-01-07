@@ -1,6 +1,12 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 import re
+import os
 import time
 import sys
+import sqlite3
 import datetime
 from datadog import statsd
 
@@ -11,55 +17,38 @@ Davis_WX_Inside_T   = 0.0
 Davis_WX_Humidity   = 0.0
 Davis_WX_Barometer  = 0.0
 
+with open('/tmp/read-wx.py.pid', 'w') as f:
+    f.write(str(os.getpid()))
+
+conn = sqlite3.connect('/var/lib/weewx/weewx.sdb')
+
 while True:
+    cur = conn.cursor()
 
-# Add a Try/Except block here to protect file operations? Or just let it crash?
+    cur.execute('''select
+    dateTime, barometer, inTemp, outTemp, extraTemp1, outHumidity, windSpeed, windDir
+    from archive order by dateTime desc limit 1;''')
 
-    f=open(Wx_XML_File, 'r')
-    myfile=f.read()
-    f.close()
+    _, bar, in_temp, out_temp, extra_temp, humidity, wind_speed, wind_dir = cur.fetchone()
 
-    result = re.search("<p>(.*?)</p>", myfile, re.DOTALL)
+    params = {
+        "Outside Temp": out_temp,
+        "Inside Temp": in_temp,
+        "Humidity": humidity,
+        "Barometer": bar,
+        "Garage Temp": extra_temp,
+        "Humidity": humidity,
+        "Wind Direction": wind_dir,
+        "Wind Speed": wind_speed}
 
-    if result:
-        current_block_result=result.group(1)
-    else:
-        current_block_result='Not Found current_block__result'
+    for name, value in params.iteritems():
+        print(name, value)
+        if value:
+            statsd.gauge(name, value)
 
-    lines=current_block_result.splitlines()
+    sys.stdout.flush()
+    time.sleep(100)
 
-# in case of N/A causing error on float, let it "flatline" at prior value
-
-    try:
-        Davis_WX_Outside_T  = float(lines[2][34:38])
-    except:
-        pass
-    try:
-        Davis_WX_Inside_T   = float(lines[3][34:38])
-    except:
-        pass
-    try:
-        Davis_WX_Humidity   = float(lines[7][34:36])
-    except:
-        pass
-    try:
-        Davis_WX_Barometer  = float(lines[8][34:40])
-    except:
-        pass
-
-    print(datetime.datetime.now())
-    print("Outside T: ", Davis_WX_Outside_T)
-    print("Inside T: ", Davis_WX_Inside_T)
-    print("Humidity: ", Davis_WX_Humidity)
-    print("Barometer: ", Davis_WX_Barometer)
-
-    statsd.gauge("Outside Temp", Davis_WX_Outside_T)
-    statsd.gauge("Inside Temp", Davis_WX_Inside_T)
-    statsd.gauge("Humidity", Davis_WX_Humidity)
-    statsd.gauge("Barometer", Davis_WX_Barometer)
-
-    time.sleep(300)
 
 pass #end while
-
 

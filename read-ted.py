@@ -1,5 +1,9 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
 import requests
 import re
+import os
 import time
 import sys
 import datetime
@@ -7,8 +11,10 @@ from datadog import statsd
 
 ipoll = 0
 
-while True:
+with open('/tmp/read-ted.py.pid', 'w') as f:
+    f.write(str(os.getpid()))
 
+while True:    
     link="http://10.0.0.41/api/LiveData.xml"
 
     while True:
@@ -19,6 +25,7 @@ while True:
             break
         except:
             print("Exception on request to TED: " +str(sys.exc_info()[0])+' ['+ str(datetime.datetime.now())+']' )
+            sys.stdout.flush()
             time.sleep(10)
 
     myfile=f.text
@@ -26,7 +33,7 @@ while True:
     result = re.search("<Voltage>(.*?)</Voltage>", str(myfile), re.DOTALL)
 
     if result:
-        volt_result=result.group(1)
+       volt_result=result.group(1)
     else:
         volt_result='Not Found volt_result'
 
@@ -74,7 +81,7 @@ while True:
     statsd.gauge('Power', pnow)
 
 
-
+    sys.stdout.flush()
     time.sleep(10)
 
 pass
