@@ -41,11 +41,11 @@ while True:
 
         if (st == 0) & (val == 0):  #Gen was off, but signal is on, it must be starting .. send message right away
             st = 2 # don't trigger again this loop of 20
-            print("Would be Texting [" + str(datetime.datetime.now()) + "] " + "Generator is STARTING")
+            print("Would be Texting [" + str(datetime.datetime.now()) + "] " + "(B)Generator is STARTING")
 
-            body = "Generator is STARTING"
-#           send_sms(os.environ['DFM_CELL'], body)
-#           send_sms(os.environ['LRM_CELL'], body)
+            body = "(B)Generator is STARTING"
+            send_sms(os.environ['DFM_CELL'], body)
+            send_sms(os.environ['LRM_CELL'], body)
   
         sigma=sigma+val
         sleep(0.200)
@@ -72,9 +72,10 @@ while True:
         excount = excount + 1
         if excount >= 2:
             st  = 1
-        else:
-            st = last_st
-        gs = 0.25
+            excount = 0 #added this line to stop double start message 
+       else:
+            st = 1 # changed this from last_st .. if not sure, move from 0 to 1 
+        gs = 0.25  # to see if it's flashing for exercise or on the way to starting
       
     index=index+1
 
@@ -87,11 +88,11 @@ while True:
 
     if last_st != st:
         print("Would be texting [" + str(datetime.datetime.now()) + "] " + 
-               "Generator is " + ["OFF", "EXERCISING", "ON"][st])
+               "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st])
 
-        body = "Generator is " + ["OFF", "EXERCISING", "ON"][st]
-#       send_sms(os.environ['DFM_CELL'], body)
-#       send_sms(os.environ['LRM_CELL'], body)
+        body = "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st]
+        send_sms(os.environ['DFM_CELL'], body)
+        send_sms(os.environ['LRM_CELL'], body)
 
     last_st = st
     sleep(0.2)
