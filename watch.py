@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# expects to be run from virtualenv
+
 from __future__ import print_function
 from __future__ import with_statement
 import os
@@ -27,6 +30,7 @@ def logfilename(progname):
     return progname+".log"
 
 def start(progname):
+    print('Starting', progname)
     logfile = open(logfilename(progname), "a")
     logfile.write("!!!!!!! Restarted " + progname + " at " + str(datetime.datetime.now()) + "\n")
     logfile.flush()
@@ -35,22 +39,27 @@ def start(progname):
     if retval != 0:
         raise Exception("non-zero exit(" + str(revtal) + ": " + command)
 
+def get_pid(progname):
+    try:
+        with open("/tmp/" + progname + ".pid") as pidfile:
+            return int(pidfile.read())
+    except IOError:
+        return None        
+    
 def handle(progname):
     try:
-        pidfile = open("/tmp/" + progname + ".pid") 
-    except IOError:
+        pid = get_pid(progname)
+    except:
         print("starting " + progname + " for the first time")
         start(progname)
     else:
-        with pidfile:
-            pid = int(pidfile.read())
-            try:
-                kr = os.kill(pid, signal.SIGKILL)
-            except:
-                print(progname + " not running?")
-            else:
-                print("killed " + progname + " (pid " + str(pid) + " + ret = " + str(kr) + ")")
-            start(progname)
+        try:
+            kr = os.kill(pid, signal.SIGKILL)
+        except:
+            print(progname + " not running?")
+        else:
+            print("killed " + progname + " (pid " + str(pid) + " + ret = " + str(kr) + ")")
+        start(progname)
     
 class Handler(FileSystemEventHandler):
     def on_modified(this, event):
@@ -63,7 +72,9 @@ class Handler(FileSystemEventHandler):
 
 if __name__ == "__main__":
     for name, _ in watched_files.iteritems():
-        handle(name)
+        pid = get_pid(name)
+        if not pid or not is_running(pid):
+            start(name)
         
     observer = Observer()
     observer.schedule(Handler(), ".", recursive=True)
