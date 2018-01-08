@@ -1,24 +1,54 @@
 #!/usr/bin/python
+
+from __future__ import print_function
+
 import datetime
 import requests
 import os
+import ConfigParser
+
 from requests.auth import HTTPBasicAuth
-from gpiozero import LEDBarGraph
 from time import sleep
 from gpiozero import DigitalInputDevice
 from datadog import statsd
 
+
 def btoi(v):
     return 1 if v else 0
 
-def send_sms(dest, body):
+def send_sms(dest, body, t_user, t_pass, t_num, t_acct):
     timestamp = datetime.datetime.now()
-    requests.post("https://api.twilio.com/2010-04-01/Accounts/" + os.environ['TWILIO_ACCT'] + "/Messages.json",
-                  auth = HTTPBasicAuth(os.environ['TWILIO_USER'], os.environ['TWILIO_PASS']),
+    requests.post("https://api.twilio.com/2010-04-01/Accounts/" + t_acct + "/Messages.json",
+                  auth = HTTPBasicAuth(t_user, t_pass),
                   data = {'To':   dest,
-                          'From': os.environ['TWILIO_NUM'],
+                          'From': t_num,
                           'Body': "[" + str(timestamp) + "] " + body})
-    print("[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
+    print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
+
+# Get the secrets from the config file
+
+config=ConfigParser.ConfigParser()
+osp = os.path.expanduser('~/twilio.conf')
+
+config.read(osp)
+
+twilio_acct = config.get('KEYS', 'twilio_acct')
+twilio_user = config.get('KEYS', 'twilio_user')
+twilio_pass = config.get('KEYS', 'twilio_pass')
+
+twilio_num  = config.get('PHONES' , 'twilio_num')
+dfm_cell    = config.get('PHONES'   , 'dfm_cell')
+lrm_cell    = config.get('PHONES'   , 'lrm_cell')
+
+print("twilio acct: ", twilio_acct)
+print("twilio user: ", twilio_user)
+print("twilio pass: ", twilio_pass)
+print("twilio num:  ", twilio_num )
+
+print("dfm_cell:  ", dfm_cell)
+print("lrm_cell:  ", lrm_cell)
+
+
 
 did = DigitalInputDevice(18)
 
@@ -28,7 +58,12 @@ last_st = 0
 excount = 0
 st = 2
 
-print("Startup: [" + str(datetime.datetime.now()) + "]")
+print("Startup: about to send text to DFM cell [" + str(datetime.datetime.now()) + "]")
+
+body = "Generator monitor program launching"
+send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+
+print("Text sent, beginning light sample loop")
 
 while True:
 
@@ -41,11 +76,11 @@ while True:
 
         if (st == 0) & (val == 0):  #Gen was off, but signal is on, it must be starting .. send message right away
             st = 2 # don't trigger again this loop of 20
-            print("Would be Texting [" + str(datetime.datetime.now()) + "] " + "(B)Generator is STARTING")
+            print("Texting [" + str(datetime.datetime.now()) + "] " + "(B)Generator is STARTING")
 
             body = "(B)Generator is STARTING"
-            send_sms(os.environ['DFM_CELL'], body)
-            send_sms(os.environ['LRM_CELL'], body)
+            send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+            #send_sms(lrm_Cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
   
         sigma=sigma+val
         sleep(0.200)
@@ -73,8 +108,9 @@ while True:
         if excount >= 2:
             st  = 1
             excount = 0 #added this line to stop double start message 
-       else:
-            st = 1 # changed this from last_st .. if not sure, move from 0 to 1 
+        else:
+             st = 1 # changed this from last_st .. if not sure, move from 0 to 1 
+         
         gs = 0.25  # to see if it's flashing for exercise or on the way to starting
       
     index=index+1
@@ -87,12 +123,13 @@ while True:
         statsd.gauge("Generator State", gs)
 
     if last_st != st:
-        print("Would be texting [" + str(datetime.datetime.now()) + "] " + 
+        print("st is: ", st)
+        print("Texting [" + str(datetime.datetime.now()) + "] " + 
                "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st])
 
         body = "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st]
-        send_sms(os.environ['DFM_CELL'], body)
-        send_sms(os.environ['LRM_CELL'], body)
+        send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+        #send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
     last_st = st
     sleep(0.2)
