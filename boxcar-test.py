@@ -18,11 +18,11 @@ def btoi(v):
 
 def send_sms(dest, body, t_user, t_pass, t_num, t_acct):
     timestamp = datetime.datetime.now()
-    requests.post("https://api.twilio.com/2010-04-01/Accounts/" + t_acct + "/Messages.json",
-                  auth = HTTPBasicAuth(t_user, t_pass),
-                  data = {'To':   dest,
-                          'From': t_num,
-                          'Body': "[" + str(timestamp) + "] " + body})
+    
+    ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+                    t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
+                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
+    print("Requests returns: ", ret_req)
     print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
 
 # Get the secrets from the config file
