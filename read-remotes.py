@@ -9,7 +9,7 @@ import sqlite3
 import datetime
 import socket
 import select
-import datadog
+from datadog import statsd
 from pathlib import Path
 
 Remote_List = {}
@@ -85,10 +85,10 @@ while True:
                 print("SQL insert: ", sstr)
                 c.execute(sstr)
                 conn.commit()
-                print ("Length of dlist: ", len(dlist))
-                print (dlist)
+                #print ("Length of dlist: ", len(dlist))
+                #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
-                    print ('Would call statsd.gauge with: ', dlist[0], dlist[2])
+                    #print ('Would call statsd.gauge with: ', dlist[0], dlist[2])
                     statsd.gauge(dlist[0], dlist[2])
                 
                 Remote_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
