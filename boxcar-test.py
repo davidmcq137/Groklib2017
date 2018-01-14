@@ -6,6 +6,7 @@ import datetime
 import requests
 import os
 import ConfigParser
+import socket
 
 from requests.auth import HTTPBasicAuth
 from time import sleep
@@ -57,6 +58,7 @@ jndex = 0
 last_st = 0
 excount = 0
 st = 2
+gen_start_time = 0.0
 
 print("Startup: about to send text to DFM cell [" + str(datetime.datetime.now()) + "]")
 
@@ -76,11 +78,11 @@ while True:
 
         if (st == 0) & (val == 0):  #Gen was off, but signal is on, it must be starting .. send message right away
             st = 2 # don't trigger again this loop of 20
+            gen_start_time = time.time()
             print("Texting [" + str(datetime.datetime.now()) + "] " + "(B)Generator is STARTING")
-
             body = "(B)Generator is STARTING"
             send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
-            #send_sms(lrm_Cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+            send_sms(lrm_Cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
   
         sigma=sigma+val
         sleep(0.200)
@@ -115,21 +117,45 @@ while True:
       
     index=index+1
 
-# only feed statsd every 4 sec * 15 = 60 seconds, that lets us do a lost data monitor on it to see if monitor is down
+# Only feed statsd every 4 sec * 15 = 60 seconds
+# that lets us do a lost data monitor on it to see if monitor is down
 
     if index >= 15:
         index=0
-  #     print("Calling statsd.gauge with gs= ", str(gs))
-        statsd.gauge("Generator State", gs)
+        #statsd.gauge("Generator State", gs)
+        try:
+            # Create a TCP/IP socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # print >>sys.stderr, 'connecting to %s port %s' % server_address
+            sock.connect(server_address)
+	    sockpayload = ("GEN_STATE" + "," + str(int(time.time())) + ","
+                           + str(gs) + ",DD" + ",Thunderbolt")
+	    #print sockpayload
+            sock.sendall(sockpayload)
+        except:
+            print "Exception calling sock.sendall at [" + str(int(time.time())) + "]"
+        finally:
+            sock.close()
 
     if last_st != st:
-        print("st is: ", st)
-        print("Texting [" + str(datetime.datetime.now()) + "] " + 
-               "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st])
 
-        body = "(B)Generator is " + ["OFF", "EXERCISING", "ON"][st]
+        print("st is: ", st)
+
+        if st == 0: # about to say gen is off .. add delta t string
+            gen_run_time = time.time() - gen_start_time
+            print("Generator run time (s) is: ", gen_run_time)
+            gen_off_str = ". Run time (m): {:.2f}".format(gen_run_time/60.0)
+        else:
+            gen_off_str = ''
+            
+        print("Texting [" + str(datetime.datetime.now()) + "] " + 
+               "Generator is " + ["OFF", "EXERCISING", "ON"][st] +
+               gen_off_str)
+
+        body = "Generator is " + ["OFF", "EXERCISING", "ON"][st] + gen_off_str
         send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
-        #send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+        if st == 0: # only send LRM starting and ending messages
+            send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
     last_st = st
     sleep(0.2)
