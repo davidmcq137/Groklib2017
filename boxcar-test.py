@@ -133,7 +133,7 @@ while True:
 	    #print sockpayload
             sock.sendall(sockpayload)
         except:
-            print "Exception calling sock.sendall at [" + str(int(time.time())) + "]"
+            print ("Exception calling sock.sendall at [" + str(int(time.time())) + "]")
         finally:
             sock.close()
 
