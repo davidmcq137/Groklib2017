@@ -25,6 +25,7 @@ while True:
             break
         except:
             print("Exception on request to TED: " +str(sys.exc_info()[0])+' ['+ str(datetime.datetime.now())+']' )
+            print("Return code from requests.get: ", f.status_code)
             sys.stdout.flush()
             time.sleep(10)
 

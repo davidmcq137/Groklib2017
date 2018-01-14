@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+#
 
+import requests
+import ConfigParser
 import os
 import time
 import sys
@@ -9,15 +12,48 @@ import sqlite3
 import datetime
 import socket
 import select
+import subprocess
 from datadog import statsd
 from pathlib import Path
+from requests.auth import HTTPBasicAuth
+
+def send_sms(body, dest):
+    
+    config=ConfigParser.ConfigParser()
+    osp = os.path.expanduser('~/twilio.conf')
+    
+    config.read(osp)
+
+    t_acct   = config.get('KEYS', 'twilio_acct')
+    t_user   = config.get('KEYS', 'twilio_user')
+    t_pass   = config.get('KEYS', 'twilio_pass')
+
+    t_num    = config.get('PHONES' , 'twilio_num')
+    dfm_cell = config.get('PHONES'   , 'dfm_cell')
+    lrm_cell = config.get('PHONES'   , 'lrm_cell')
+
+    timestamp = datetime.datetime.now()
+    
+    ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+                    t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
+                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
+
+    print("Requests returns: ", ret_req)
+
+    print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
+
+    return ret_req
+
 
 Remote_List = {}
 CONNECTION_LIST = []    # list of socket clients
 RECV_BUFFER = 256 # Advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"
-timeout = 40.0    # seconds before a reading, once heard from, is considered late
+timeout = 120.0   # seconds before a reading, once heard from, is considered late
+watch_processes={"weewxd":0, "read-remotes.py":0, "read-wx.py":0, "read-ted.py":0, "read-wx.py":0, "foo.py":0}
+iproc = 0
+NPROC = 100
 
 sql_db_fname = tn + ".db"
 print("SQL data file name is: ", sql_db_fname)
@@ -97,13 +133,40 @@ while True:
             # end if data
         # end else server_socket            
     # end for sock
+    
     # now go thru arrival times list and see if someone is late
     for chan, chan_time in Remote_List.iteritems():
         if chan_time != 0 and time.time() > chan_time:
             print("Channel: " + chan + " is late!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            ret_sms = send_sms("Missing data from Channel: "+ chan, "+1-301-395-6242") 
             Remote_List[chan] = 0 # just print it once, it will get reset above if it wakes up
         #else:
             #print("Time,Channel, time ok: ", time.time(), chan, chan_time)
+
+    # now look at the list of critical processes and see if they are still up and running
+
+    iproc = iproc + 1
+    if iproc >= NPROC: # main loop is 0.2 sec sleep, only check this every 20 secs if NPROC = 100
+        iproc = 0
+        ps_out = subprocess.check_output(["ps", "aux"])
+        for process, ipc in watch_processes.iteritems():
+            #print("Checking: ", process)
+            if (not process in ps_out) and (ipc != -1):
+                print("Process has stopped: ", process)
+                # put sms call here
+                body_str = "Process " + process + " has stopped."
+                ret_sms = send_sms(body_str, "+1-301-395-6242")
+                watch_processes[process]=-1
+                # only want to send this message once, will reset if process restarts
+            else:
+                if (process in ps_out) and (ipc == -1):
+                    print("Process has restarted: ", process)
+                    # maybe sms call here?
+                    body_str = "Process " + process + " has restarted."
+                    ret_sms = send_sms(body_str, "+1-301-395-6242")
+                    watch_processes[process]=1
+                    #process is running, note it
+    #end if iproc           
             
     time.sleep(0.2)
                   

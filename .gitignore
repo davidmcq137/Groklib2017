@@ -2,3 +2,5 @@
 Pipfile.lock
 *~
 *.log
+*.db
+
