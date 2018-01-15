@@ -59,6 +59,7 @@ last_st = 0
 excount = 0
 st = 2
 gen_start_time = 0.0
+server_address = ('10.0.0.48',10137)
 
 print("Startup: about to send text to DFM cell [" + str(datetime.datetime.now()) + "]")
 

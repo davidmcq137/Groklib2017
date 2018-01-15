@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import nest
 import sys
 from datadog import statsd
@@ -16,6 +18,9 @@ with open('/tmp/read-nest.py.pid', 'w') as f:
     f.write(str(os.getpid()))
 
 # set up a ring buffer for power samples. this prog's main loop is 20 seconds, so 3/min, 180/hr
+
+# TODO: recode this so it starts 1 element, then adds one on each sample in each loop, only averages
+# the number of samples it has so far, and wraps at 1000. This way is brain dead...
 
 RING_SIZE = 1080                     # 6 hours
 FILL_RING = 9400.0                   # make up a value close to what it should be
@@ -69,11 +74,14 @@ while True:
             for device in structure.thermostats:
                 print(device.name)
                 if (device.name=='Downstairs'):
-                     DS_TARGET = device.target
-                     if (str(device.hvac_state) == 'heating'):
+                    if (str(device.hvac_state) == 'heating'):
                          DS_HVAC_STATE = 1.0
-                     else:
-                        DS_HVAC_STATE = 0.1
+                    else:
+                         DS_HVAC_STATE = 0.1
+
+                    DS_TEMP = device.temperature
+                    DS_HUM = device.humidity
+                    DS_TARGET = device.target                                                 
 
 # For Downstairs (one device), it's just 0 or 1
 # For Upstairs (three devices), it's 0 or 1.1, 1.2, 1.3
@@ -83,6 +91,10 @@ while True:
                         MB_HVAC_STATE = 0.1
                     else:
                         MB_HVAC_STATE = 0.0
+                    MB_TEMP = device.temperature
+                    MB_HUM = device.humidity
+                    MB_TARGET = device.target                        
+
                 if (device.name=='Upstairs'):
                    if (str(device.hvac_state) == 'heating'):
                        UP_HVAC_STATE = 0.1
@@ -150,13 +162,21 @@ while True:
         statsd.gauge('DS_TARGET', DS_TARGET)
         print ("Downstairs Target statsd was called with: " + str(DS_TARGET))
 
+        statsd.gauge('DS_HUM', DS_HUM)
+        print ("Downstairs Humidity statsd was called with: " + str(DS_HUM))        
+        
+        statsd.gauge('ST_TARGET', ST_TARGET)
+        print ("Studio Target statsd was called with: " + str(ST_TARGET))
+
         statsd.gauge('US_HVAC', US_HVAC_STATE)
         print ("Upstairs statsd was called with: " + str(US_HVAC_STATE))
-
 
         statsd.gauge('MB_HVAC', MB_HVAC_STATE)
         print ("Master Bedroom statsd was called with: " + str(MB_HVAC_STATE))
 
+        statsd.gauge('MB_HUM', MB_HUM)
+        print ("Master Bedroom Humidity statsd was called with: " + str(MB_HUM))
+               
         statsd.gauge('UP_HVAC', UP_HVAC_STATE)
         print ("Upstairs statsd was called with: " + str(UP_HVAC_STATE))
 
@@ -166,10 +186,16 @@ while True:
 
         statsd.gauge('ST_HVAC', ST_HVAC_STATE)
         print ("Studio statsd was called with: " + str(ST_HVAC_STATE))
+
         statsd.gauge('ST_TEMP', ST_TEMP)
         print ("Studio statsd called with temp: ", str(ST_TEMP))
+
         statsd.gauge('ST_HUM', ST_HUM)
         print ("Studio statsd called with humidity: ", str(ST_HUM))
+
+        statsd.gauge('ST_TARGET', ST_TARGET)
+        print ("Studio statsd called with target: ", str(ST_TARGET))        
+
         ST_DELTA = ST_TEMP - ST_TARGET
         statsd.gauge('ST_DELTA', ST_DELTA)
         print ("Studio statsd called with delta: ", str(ST_DELTA))
