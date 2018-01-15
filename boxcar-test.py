@@ -6,12 +6,12 @@ import datetime
 import requests
 import os
 import ConfigParser
-import socket
+import statsdb
 
 from requests.auth import HTTPBasicAuth
 from time import sleep
 from gpiozero import DigitalInputDevice
-from datadog import statsd
+#from datadog import statsd
 
 
 def btoi(v):
@@ -124,19 +124,7 @@ while True:
     if index >= 15:
         index=0
         #statsd.gauge("Generator State", gs)
-        try:
-            # Create a TCP/IP socket
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # print >>sys.stderr, 'connecting to %s port %s' % server_address
-            sock.connect(server_address)
-	    sockpayload = ("GEN_STATE" + "," + str(int(time.time())) + ","
-                           + str(gs) + ",DD" + ",Thunderbolt")
-	    #print sockpayload
-            sock.sendall(sockpayload)
-        except:
-            print ("Exception calling sock.sendall at [" + str(int(time.time())) + "]")
-        finally:
-            sock.close()
+        statsdb.statsdb("GEN_STATE", gs)
 
     if last_st != st:
 
