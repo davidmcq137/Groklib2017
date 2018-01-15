@@ -124,6 +124,7 @@ while True:
     if index >= 15:
         index=0
         #statsd.gauge("Generator State", gs)
+        print("Calling statsdb", gs)
         statsdb.statsdb("GEN_STATE", gs)
 
     if last_st != st:
