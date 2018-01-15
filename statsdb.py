@@ -15,7 +15,7 @@ def statsdb(channel, value):
         pyname = os.path.basename(__file__)
         sockpayload = (channel + "," + str(int(time.time())) + ","
                        + str(value) + ",DD" + "," + platform.node())
-        print("sockpayload: ", sockpayload)
+        # print("sockpayload: ", sockpayload)
         retcode=sock.sendall(sockpayload)
     except:
         print ("Exception calling sock.sendall at [" + str(int(time.time())) + "]")
