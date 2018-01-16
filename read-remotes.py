@@ -113,20 +113,20 @@ while True:
             if data:
                 sock.close()
                 CONNECTION_LIST.remove(sock)
-                # print "Data are: [",data,"]"
+                #print ("Data are: [",data,"]")
                 dlist = data.split(",")
                 #print ("Data list: ", dlist)
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
-                print("SQL insert: ", sstr)
                 if dlist[0][0] != '#': # special first char .. if "#" then no value (E.g. wind dir)
+                    #print("SQL insert: ", sstr)
                     c.execute(sstr)
                     conn.commit()
                 #print ("Length of dlist: ", len(dlist))
                 #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
-                    #print ('Would call statsd.gauge with: ', dlist[0], dlist[2])
                     if dlist[0][0] !='#':  #special first character .. no value for channel .. don't send
+                        #print ('Calling statsd.gauge with: ', dlist[0], dlist[2])
                         statsd.gauge(dlist[0], dlist[2]) # this is the only place in the system calling statsd
                 
                 # correct the string to remove the leading "#" before checking timing
