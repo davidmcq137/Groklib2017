@@ -7,7 +7,8 @@ import os
 import time
 import sys
 import datetime
-from datadog import statsd
+#from datadog import statsd
+import statsdb
 
 ipoll = 0
 
@@ -54,7 +55,7 @@ while True:
 
     vnow=float(volt_now_result)/10.0
     print ("Voltage: "+str(vnow))
-    statsd.histogram('Voltage', str(vnow))
+    statsdb.statsdb('Voltage', str(vnow))
 
     result = re.search("<Power>(.*?)</Power>", str(myfile), re.DOTALL)
 
@@ -79,11 +80,11 @@ while True:
 
     pnow=float(power_now_result)
     print ("Power now: "+str(pnow))
-    statsd.gauge('Power', pnow)
+    statsdb.statsdb('Power', pnow)
 
 
     sys.stdout.flush()
-    time.sleep(10)
+    time.sleep(20)
 
 pass
 

@@ -8,7 +8,8 @@ import time
 import sys
 import sqlite3
 import datetime
-from datadog import statsd
+#from datadog import statsd
+import statsdb
 
 Wx_XML_File="/var/www/html/weewx/RSS/weewx_rss.xml"
 
@@ -40,11 +41,13 @@ while True:
         "Humidity": humidity,
         "Wind Direction": wind_dir,
         "Wind Speed": wind_speed}
-
+    print("sending wx parms at: ", datetime.datetime.now())
     for name, value in params.iteritems():
-        print(name, value)
         if value:
-            statsd.gauge(name, value)
+            statsdb.statsdb(name, value)
+        else:
+            print(name, value)
+            statsdb.statsdb("#" + name, 0.0)
 
     sys.stdout.flush()
     time.sleep(100)

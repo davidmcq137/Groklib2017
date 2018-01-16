@@ -3,16 +3,21 @@ from __future__ import print_function
 
 import nest
 import sys
-from datadog import statsd
+#from datadog import statsd
 import time
 import datetime
 import ConfigParser
 import os
+import statsdb
 
 DS_POWER = 5970.0
 US_POWER = 6550.0
 BS_POWER = 10800.0
 AVG_EST_POWER = 0.0
+LAST_DS = 0.0
+ds_rising_time = 0.0
+ds_period = 0.0
+ds_high_time = 0.0
 
 with open('/tmp/read-nest.py.pid', 'w') as f:
     f.write(str(os.getpid()))
@@ -139,6 +144,19 @@ while True:
 
         EST_POWER = DS_CORR * DS_POWER + US_CORR * US_POWER + BS_HVAC_STATE * BS_POWER
 
+        if LAST_DS != DS_CORR:
+            if DS_CORR > 0.5:
+                ds_period = time.time() - ds_rising_time
+                ds_rising_time = time.time()
+            else:
+                ds_high_time = time.time() - ds_rising_time
+            if ds_period != 0.0:
+                ds_duty_cycle = ds_high_time/ds_period
+            LAST_DS = DS_CORR
+            print("rising, high, period, duty", ds_rising_time, ds_high_time, ds_period, ds_duty_cycle)
+            
+        statsdb.statsdb('DS_DUTY_CYCLE', ds_duty_cycle)
+
         power_sample[iring] = EST_POWER #update ring buffer with power samples
         iring = iring + 1
         if iring >= RING_SIZE:
@@ -150,89 +168,57 @@ while True:
             AVG_EST_POWER = AVG_EST_POWER + power_sample[i]
         AVG_EST_POWER = AVG_EST_POWER/float(RING_SIZE)
 
-        statsd.gauge('EST_POWER', EST_POWER)
+        statsdb.statsdb('EST_POWER', EST_POWER)
         print ("Est Power statsd was called with: " + str(EST_POWER))
 
-        statsd.gauge('AVG_EST_POWER', AVG_EST_POWER)
+        statsdb.statsdb('AVG_EST_POWER', AVG_EST_POWER)
         print ("Avg Est Power statsd was called with: " + str(AVG_EST_POWER))
 
-        statsd.gauge('DS_HVAC', DS_HVAC_STATE)
+        statsdb.statsdb('DS_HVAC', DS_HVAC_STATE)
         print ("Downstairs statsd was called with: " + str(DS_HVAC_STATE))
 
-        statsd.gauge('DS_TARGET', DS_TARGET)
+        statsdb.statsdb('DS_TARGET', DS_TARGET)
         print ("Downstairs Target statsd was called with: " + str(DS_TARGET))
 
-        statsd.gauge('DS_HUM', DS_HUM)
+        statsdb.statsdb('DS_HUM', DS_HUM)
         print ("Downstairs Humidity statsd was called with: " + str(DS_HUM))        
         
-        statsd.gauge('ST_TARGET', ST_TARGET)
+        statsdb.statsdb('ST_TARGET', ST_TARGET)
         print ("Studio Target statsd was called with: " + str(ST_TARGET))
 
-        statsd.gauge('US_HVAC', US_HVAC_STATE)
+        statsdb.statsdb('US_HVAC', US_HVAC_STATE)
         print ("Upstairs statsd was called with: " + str(US_HVAC_STATE))
 
-        statsd.gauge('MB_HVAC', MB_HVAC_STATE)
+        statsdb.statsdb('MB_HVAC', MB_HVAC_STATE)
         print ("Master Bedroom statsd was called with: " + str(MB_HVAC_STATE))
 
-        statsd.gauge('MB_HUM', MB_HUM)
+        statsdb.statsdb('MB_HUM', MB_HUM)
         print ("Master Bedroom Humidity statsd was called with: " + str(MB_HUM))
                
-        statsd.gauge('UP_HVAC', UP_HVAC_STATE)
+        statsdb.statsdb('UP_HVAC', UP_HVAC_STATE)
         print ("Upstairs statsd was called with: " + str(UP_HVAC_STATE))
 
-        statsd.gauge('BS_HVAC', BS_HVAC_STATE)
+        statsdb.statsdb('BS_HVAC', BS_HVAC_STATE)
         print ("Basement statsd was called with: " + str(BS_HVAC_STATE))
 
 
-        statsd.gauge('ST_HVAC', ST_HVAC_STATE)
+        statsdb.statsdb('ST_HVAC', ST_HVAC_STATE)
         print ("Studio statsd was called with: " + str(ST_HVAC_STATE))
 
-        statsd.gauge('ST_TEMP', ST_TEMP)
+        statsdb.statsdb('ST_TEMP', ST_TEMP)
         print ("Studio statsd called with temp: ", str(ST_TEMP))
 
-        statsd.gauge('ST_HUM', ST_HUM)
+        statsdb.statsdb('ST_HUM', ST_HUM)
         print ("Studio statsd called with humidity: ", str(ST_HUM))
 
-        statsd.gauge('ST_TARGET', ST_TARGET)
+        statsdb.statsdb('ST_TARGET', ST_TARGET)
         print ("Studio statsd called with target: ", str(ST_TARGET))        
 
         ST_DELTA = ST_TEMP - ST_TARGET
-        statsd.gauge('ST_DELTA', ST_DELTA)
+        statsdb.statsdb('ST_DELTA', ST_DELTA)
         print ("Studio statsd called with delta: ", str(ST_DELTA))
 
     sys.stdout.flush()
     time.sleep(20)
 pass
 
-
-# The Nest object can also be used as a context manager
-#with nest.Nest(client_id=client_id, client_secret=client_secret, access_token_cache_file=access_token_cache_file) as napi:
-#    for device in napi.thermostats:
-#        device.temperature = 23
-
-# Nest products can be updated to include other permissions. Before you
-# can access them with the API, a user has to authorize again. To handle this
-# and detect when re-authorization is required, pass in a product_version
-#client_id = 'XXXXXXXXXXXXXXX'
-#client_secret = 'XXXXXXXXXXXXXXX'
-#access_token_cache_file = 'nest.json'
-#product_version = 1337
-
-#napi = nest.Nest(client_id=client_id, client_secret=client_secret, access_token_cache_file=access_token_cache_file, product_version=product_version)
-
-#print("Never Authorized: %s" % napi.never_authorized)
-#print("Invalid Token: %s" % napi.invalid_access_token)
-#print("Client Version out of date: %s" % napi.client_version_out_of_date)
-#if napi.authorization_required is None:
-#    print('Go to ' + napi.authorize_url + ' to authorize, then enter PIN below')
-#    pin = input("PIN: ")
-#    napi.request_token(pin)
-
-
-# NOTE: By default all datetime objects are timezone unaware (UTC)
-#       By passing `local_time=True` to the `Nest` object datetime objects
-#       will be converted to the timezone reported by nest. If the `pytz`
-#       module is installed those timezone objects are used, else one is
-#       synthesized from the nest data
-#napi = nest.Nest(username, password, local_time=True)
-#print napi.structures[0].weather.current.datetime.tzinfo

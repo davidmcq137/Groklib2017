@@ -50,8 +50,8 @@ CONNECTION_LIST = []    # list of socket clients
 RECV_BUFFER = 256 # Advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"
-timeout = 120.0   # seconds before a reading, once heard from, is considered late
-watch_processes={"weewxd":0, "read-remotes.py":0, "read-wx.py":0, "read-ted.py":0, "read-wx.py":0, "foo.py":0}
+timeout = 180.0   # seconds before a reading, once heard from, is considered late
+watch_processes={"weewxd":0, "read-remotes.py":0, "read-wx.py":0, "read-ted.py":0, "read-wx.py":0}
 iproc = 0
 NPROC = 100
 
@@ -87,7 +87,7 @@ else:
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #print ("Server socket: ", server_socket)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind(("0.0.0.0", PORT))
+server_socket.bind(("0.0.0.0", PORT)) # maybe this should be 10.0.0.0 to only listen to local network?
 server_socket.listen(10)
  
 # Add server socket to the list of readable connections
@@ -119,14 +119,20 @@ while True:
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
                 print("SQL insert: ", sstr)
-                c.execute(sstr)
-                conn.commit()
+                if dlist[0][0] != '#': # special first char .. if "#" then no value (E.g. wind dir)
+                    c.execute(sstr)
+                    conn.commit()
                 #print ("Length of dlist: ", len(dlist))
                 #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
                     #print ('Would call statsd.gauge with: ', dlist[0], dlist[2])
-                    statsd.gauge(dlist[0], dlist[2])
+                    if dlist[0][0] !='#':  #special first character .. no value for channel .. don't send
+                        statsd.gauge(dlist[0], dlist[2]) # this is the only place in the system calling statsd
                 
+                # correct the string to remove the leading "#" before checking timing
+                if dlist[0][0] == '#':
+                    tempstr=dlist[0]
+                    dlist[0] = tempstr[1:] 
                 Remote_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
                 # print ('Remote_List is: ', Remote_List)
                 # endif
