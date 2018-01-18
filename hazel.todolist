@@ -1,0 +1,8 @@
+text on missing data:
+
+if e.g. read-nest dies, you get a message for each of the variables it updates .. they are all missing. should find a nice way to consolidate messages, e.g. missing data from the read-nest process vs missing data from the channel
+
+watch extended to read-remotes:
+
+should read-remotes be part of the watch list for watch.py?
+
