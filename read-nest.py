@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import nest
+import nest   # https://github.com/jkoelker/python-nest
 import sys
 #from datadog import statsd
 import time
@@ -10,25 +10,17 @@ import ConfigParser
 import os
 import statsdb
 
-DS_POWER = 5970.0
-US_POWER = 6550.0
-BS_POWER = 10800.0
-AVG_EST_POWER = 0.0
-LAST_DS = 0.0
-LAST_US = 0.0
-ds_rising_time = 0.0
-ds_period = 0.0
-ds_high_time = 0.0
-ds_duty_cycle = 0.0
-us_rising_time = 0.0
-us_period = 0.0
-us_high_time = 0.0
-us_duty_cycle = 0.0
+DS_POWER = 5970.0; US_POWER = 6550.0; BS_POWER = 10800.0; AVG_EST_POWER = 0.0
+LAST_DS = 0.0; LAST_US = 0.0
+ds_rising_time = 0.0; ds_period = 0.0; ds_high_time = 0.0; ds_duty_cycle = 0.0
+us_rising_time = 0.0; us_period = 0.0; us_high_time = 0.0; us_duty_cycle = 0.0
+
+# Open the file to store the pid for watch.py
 
 with open('/tmp/read-nest.py.pid', 'w') as f:
     f.write(str(os.getpid()))
 
-# set up a ring buffer for power samples. this prog's main loop is 20 seconds, so 3/min, 180/hr
+# Set up a ring buffer for power samples. this prog's main loop is 20 seconds, so 3/min, 180/hr
 
 iring = 0                            # average power ring buffer index cycles 0 .. RING_SIZE-1
 jring = 0                            # index that goes from 0 to RING_SIZE-1 and stays ther
@@ -74,8 +66,6 @@ for structure in napi.structures:
         print ('Device: %s' % device.name)
         print ('Temp: %0.1f' % device.temperature)
 
-
-
 while True:
     try:
         for structure in napi.structures:
@@ -91,9 +81,10 @@ while True:
                     DS_HUM = device.humidity
                     DS_TARGET = device.target                                                 
 
-# For Downstairs (one device), it's just 0 or 1
-# For Upstairs (three devices), it's 0 or 1.1, 1.2, 1.3
-
+                    # For Downstairs (one device), it's just 0 or 1
+                    # For Upstairs (three devices), it's 0 or 1.1, 1.2, 1.3
+                    # This is so we can see which devices are on when looking at Datadog
+                    
                 if (device.name=='Master Bedroom'):
                     if (str(device.hvac_state) == 'heating'):
                         MB_HVAC_STATE = 0.1
@@ -128,6 +119,8 @@ while True:
     else:
         print ("NEST api call complete: ["+str(datetime.datetime.now())+"]")
 
+        ST_DELTA = ST_TEMP - ST_TARGET
+
         US_HVAC_STATE = MB_HVAC_STATE + UP_HVAC_STATE + ST_HVAC_STATE
 
         if (US_HVAC_STATE != 0.0):
@@ -146,6 +139,8 @@ while True:
 
         EST_POWER = DS_CORR * DS_POWER + US_CORR * US_POWER + BS_HVAC_STATE * BS_POWER
 
+        # Now compute duty cycle for last complete period of the thermostat (on to on)
+
         if LAST_DS != DS_CORR:
             if DS_CORR > 0.5:
                 ds_period = time.time() - ds_rising_time
@@ -154,8 +149,6 @@ while True:
                 ds_rising_time = time.time()
             else:
                 ds_high_time = time.time() - ds_rising_time
-        statsdb.statsdb('DS_DUTY_CYCLE', ds_duty_cycle)
-        statsdb.statsdb('DS_PERIOD', ds_period)
         LAST_DS = DS_CORR
 
         if LAST_US != US_CORR:
@@ -166,8 +159,6 @@ while True:
                 us_rising_time = time.time()
             else:
                 us_high_time = time.time() - us_rising_time
-        statsdb.statsdb('US_DUTY_CYCLE', us_duty_cycle)
-        statsdb.statsdb('US_PERIOD', us_period)
         LAST_US = US_CORR
             
         power_sample[iring] = EST_POWER #update ring buffer with power samples
@@ -185,7 +176,20 @@ while True:
         if jring+1 < RING_SIZE-1: # so that jring goes from 0 to RING_SIZE-1 then stays at RING_SIZE-1
             jring = jring + 1
 
+        # Now write all the channels out to the main Hazel loop in read-remotes.py
 
+        statsdb.statsdb('DS_DUTY_CYCLE', ds_duty_cycle)
+        #print ("DS duty cycle: ", ds_duty_cycle)
+        
+        statsdb.statsdb('DS_PERIOD', ds_period)
+        #print ("DS period: ", ds_period)
+
+        statsdb.statsdb('US_DUTY_CYCLE', us_duty_cycle)
+        #print ("US duty cycle: ", us_duty_cycle)
+        
+        statsdb.statsdb('US_PERIOD', us_period)
+        #print ("US period: ", us_period)
+        
         statsdb.statsdb('EST_POWER', EST_POWER)
         #print ("Est Power statsd was called with: " + str(EST_POWER))
 
@@ -231,7 +235,6 @@ while True:
         statsdb.statsdb('ST_TARGET', ST_TARGET)
         #print ("Studio statsd called with target: ", str(ST_TARGET))        
 
-        ST_DELTA = ST_TEMP - ST_TARGET
         statsdb.statsdb('ST_DELTA', ST_DELTA)
         #print ("Studio statsd called with delta: ", str(ST_DELTA))
 

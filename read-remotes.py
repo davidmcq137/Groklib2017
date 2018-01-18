@@ -125,6 +125,12 @@ while True:
                 #print ("Data are: [",data,"]")
                 dlist = data.split(",")
                 #print ("Data list: ", dlist)
+                time_loc = int(time.time())
+                time_rem = int(dlist[1])
+                if time_loc - time_rem > 10:
+                    print("Time diff greater than 10s")
+                    print("Channel, loc, rem: " + dlist[0] + " " + str(time_loc) + " " + str(time_rem))
+                # we are using the remote system's time .. should we use this system's time?    
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
                 if dlist[0][0] != '#': # special first char .. if "#" then no value (E.g. wind dir)
@@ -141,7 +147,10 @@ while True:
                 # correct the string to remove the leading "#" before checking timing
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
-                    dlist[0] = tempstr[1:] 
+                    dlist[0] = tempstr[1:]
+                if dlist[0] in Remote_List:      # if a channel we know about
+                  if Remote_List[dlist[0]] == 0: # if it got set to zero by being late... then it's back
+                      print("Channel has resumed reporting: ", dlist[0])
                 lrlb = len(Remote_List)    
                 Remote_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
                 lrla = len(Remote_List)
