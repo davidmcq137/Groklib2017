@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-
 from __future__ import print_function
-#
-
 import requests
 import ConfigParser
 import os
@@ -17,17 +14,39 @@ from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
+Remote_List = {}        # list of channels we are receiving
+CONNECTION_LIST = []    # list of socket clients
+RECV_BUFFER = 256       # advisable to keep it as an exponent of 2
+PORT = 10137
+tn = "HAZEL_MASTER"     # name stem for SQL logging database 
+timeout = 180.0         # seconds before a reading, once heard from, is considered late
+watch_processes={"weewxd":0,
+                 "read-remotes.py":0,
+                 "read-wx.py":0,
+                 "read-ted.py":0,
+                 "read-wx.py":0}
+iproc = 0
+NPROC = 100
+
+# read the config here so we have dfm_cell in the main prog
+# inelegant that subroutine send_sms re-reads. think of a better way...
+
+config=ConfigParser.ConfigParser()
+osp = os.path.expanduser('~/twilio.conf')
+config.read(osp)
+
+dfm_cell = config.get('PHONES','dfm_cell')
+
+print("Will text alerts to: ", dfm_cell)
+
 def send_sms(body, dest):
     
     config=ConfigParser.ConfigParser()
     osp = os.path.expanduser('~/twilio.conf')
-    
     config.read(osp)
-
     t_acct   = config.get('KEYS', 'twilio_acct')
     t_user   = config.get('KEYS', 'twilio_user')
     t_pass   = config.get('KEYS', 'twilio_pass')
-
     t_num    = config.get('PHONES' , 'twilio_num')
     dfm_cell = config.get('PHONES'   , 'dfm_cell')
     lrm_cell = config.get('PHONES'   , 'lrm_cell')
@@ -38,22 +57,10 @@ def send_sms(body, dest):
                     t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
                     data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
 
-    print("Requests returns: ", ret_req)
-
+    #print("Requests returns: ", ret_req)
     print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
-
     return ret_req
 
-
-Remote_List = {}
-CONNECTION_LIST = []    # list of socket clients
-RECV_BUFFER = 256 # Advisable to keep it as an exponent of 2
-PORT = 10137
-tn = "HAZEL_MASTER"
-timeout = 180.0   # seconds before a reading, once heard from, is considered late
-watch_processes={"weewxd":0, "read-remotes.py":0, "read-wx.py":0, "read-ted.py":0, "read-wx.py":0}
-iproc = 0
-NPROC = 100
 
 sql_db_fname = tn + ".db"
 print("SQL data file name is: ", sql_db_fname)
@@ -62,7 +69,7 @@ print("SQL data file name is: ", sql_db_fname)
 
 myfile = Path(sql_db_fname)
 
-print("myfile: ", myfile)
+#print("myfile: ", myfile)
     
 if myfile.is_file():
     db_exists = True
@@ -83,6 +90,8 @@ else:
     c.execute('CREATE TABLE ' + tn + '(CHAN string, EPOCH integer, VALUE real)')
     c = conn.cursor() # has the cursor moved if creating the table? re-read it
 
+for proc in watch_processes:
+    print ("Watching process: ", proc)
          
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #print ("Server socket: ", server_socket)
@@ -133,7 +142,11 @@ while True:
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
                     dlist[0] = tempstr[1:] 
+                lrlb = len(Remote_List)    
                 Remote_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
+                lrla = len(Remote_List)
+                if lrla != lrlb:
+                    print("Now tracking channel: ", dlist[0])
                 # print ('Remote_List is: ', Remote_List)
                 # endif
             # end if data
@@ -143,8 +156,8 @@ while True:
     # now go thru arrival times list and see if someone is late
     for chan, chan_time in Remote_List.iteritems():
         if chan_time != 0 and time.time() > chan_time:
-            print("Channel: " + chan + " is late!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            ret_sms = send_sms("Missing data from Channel: "+ chan, "+1-301-395-6242") 
+            print("Missing data from channel: " + chan + " - sending text")
+            ret_sms = send_sms("Missing data from Channel: "+ chan, dfm_cell) 
             Remote_List[chan] = 0 # just print it once, it will get reset above if it wakes up
         #else:
             #print("Time,Channel, time ok: ", time.time(), chan, chan_time)
@@ -161,7 +174,7 @@ while True:
                 print("Process has stopped: ", process)
                 # put sms call here
                 body_str = "Process " + process + " has stopped."
-                ret_sms = send_sms(body_str, "+1-301-395-6242")
+                ret_sms = send_sms(body_str, dfm_cell)
                 watch_processes[process]=-1
                 # only want to send this message once, will reset if process restarts
             else:
@@ -169,11 +182,11 @@ while True:
                     print("Process has restarted: ", process)
                     # maybe sms call here?
                     body_str = "Process " + process + " has restarted."
-                    ret_sms = send_sms(body_str, "+1-301-395-6242")
+                    ret_sms = send_sms(body_str, dfm_cell)
                     watch_processes[process]=1
                     #process is running, note it
     #end if iproc           
-            
+    sys.stdout.flush()
     time.sleep(0.2)
                   
 # end while True
