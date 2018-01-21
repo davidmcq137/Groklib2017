@@ -12,8 +12,8 @@ import statsdb
 
 DS_POWER = 5970.0; US_POWER = 6550.0; BS_POWER = 10800.0; AVG_EST_POWER = 0.0
 LAST_DS = 0.0; LAST_US = 0.0
-ds_rising_time = 0.0; ds_period = 0.0; ds_high_time = 0.0; ds_duty_cycle = 0.0
-us_rising_time = 0.0; us_period = 0.0; us_high_time = 0.0; us_duty_cycle = 0.0
+ds_rising_time = 0.0; ds_period = 0.0; ds_high_time = 0.0; ds_duty_cycle = 0.0; ds_rise_num = 0.0
+us_rising_time = 0.0; us_period = 0.0; us_high_time = 0.0; us_duty_cycle = 0.0; us_rise_num = 0.0
 
 # Open the file to store the pid for watch.py
 
@@ -143,6 +143,8 @@ while True:
 
         if LAST_DS != DS_CORR:
             if DS_CORR > 0.5:
+                if ds_rise_num < 2:
+                    ds_rise_num = ds_rise_num + 1
                 ds_period = time.time() - ds_rising_time
                 if ds_period != 0.0:
                     ds_duty_cycle = ds_high_time/ds_period
@@ -153,6 +155,8 @@ while True:
 
         if LAST_US != US_CORR:
             if US_CORR > 0.5:
+                if us_rise_num < 2:
+                    us_rise_num = us_rise_num + 1
                 us_period = time.time() - us_rising_time
                 if us_period != 0.0:
                     us_duty_cycle = us_high_time/us_period
@@ -178,12 +182,21 @@ while True:
 
         # Now write all the channels out to the main Hazel loop in read-remotes.py
 
+        # kludge: don't report period and duty cycle till 2 full thermostat cycles
+        if ds_rise_num < 2:
+            ds_duty_cycle = 0.0
+            ds_period = 0.0
+            
         statsdb.statsdb('DS_DUTY_CYCLE', ds_duty_cycle)
-        #print ("DS duty cycle: ", ds_duty_cycle)
-        
+        #print ("US duty cycle: ", us_duty_cycle)
+
         statsdb.statsdb('DS_PERIOD', ds_period)
         #print ("DS period: ", ds_period)
 
+        if us_rise_num < 2:    
+            us_duty_cycle = 0.0
+            us_period = 0.0
+            
         statsdb.statsdb('US_DUTY_CYCLE', us_duty_cycle)
         #print ("US duty cycle: ", us_duty_cycle)
         

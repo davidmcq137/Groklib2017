@@ -6,3 +6,5 @@ watch extended to read-remotes:
 
 should read-remotes be part of the watch list for watch.py?
 
+fix ugly startup on duty cycle and period in nest.py
+
