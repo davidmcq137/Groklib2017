@@ -7,6 +7,7 @@ import requests
 import os
 import ConfigParser
 import statsdb
+import time
 
 from requests.auth import HTTPBasicAuth
 from time import sleep
@@ -83,7 +84,7 @@ while True:
             print("Texting [" + str(datetime.datetime.now()) + "] " + "(B)Generator is STARTING")
             body = "(B)Generator is STARTING"
             send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
-            send_sms(lrm_Cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+            send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
   
         sigma=sigma+val
         sleep(0.200)
