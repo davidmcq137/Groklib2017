@@ -18,7 +18,7 @@ timeout = 180.0         # seconds before a reading, once heard from, is consider
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
-Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "Camel":iftime, "spad":iftime}
+Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
 
@@ -190,7 +190,7 @@ while True:
             
     for sys_name, sys_time in Remote_Sys_List.iteritems():
         if sys_time != 0 and time.time() > sys_time:
-            print("Missing data from system: " + sys_name + " - sending text")
+            print("Missing data from system: " + sys_name)
             if not latechan:
                 ret_sms = send_sms("Missing data from System: " + sys_name, dfm_cell) 
             Remote_Sys_List[sys_name] = 0 # just print it once, it will get reset above if it wakes up
