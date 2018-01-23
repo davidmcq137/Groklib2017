@@ -14,14 +14,21 @@ from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-Remote_List = {}        # list of channels we are receiving
+timeout = 180.0         # seconds before a reading, once heard from, is considered late for channels and systems
+iftime = time.time() + timeout
+                        # post a time check <timeout> secs in the future to see if remote
+                        # systems are up
+Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "Camel":iftime, "spad":iftime}
+
+Remote_Chan_List = {}   # list of channels we are receiving
+
 CONNECTION_LIST = []    # list of socket clients
 RECV_BUFFER = 256       # advisable to keep it as an exponent of 2
 PORT = 10137
-tn = "HAZEL_MASTER"     # name stem for SQL logging database 
-timeout = 180.0         # seconds before a reading, once heard from, is considered late
+tn = "HAZEL_MASTER"     # name stem for SQL logging database
+
 watch_processes={"weewxd":0,
-                 "read-remotes.py":0,
+                 "read-remotes.py":0, # umm .. this prog can't watch itself...
                  "read-wx.py":0,
                  "read-ted.py":0,
                  "read-wx.py":0}
@@ -148,28 +155,48 @@ while True:
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
                     dlist[0] = tempstr[1:]
-                if dlist[0] in Remote_List:      # if a channel we know about
-                  if Remote_List[dlist[0]] == 0: # if it got set to zero by being late... then it's back
+                if dlist[0] in Remote_Chan_List:      # if a channel we know about
+                  if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late... then it's back
                       print("Channel has resumed reporting: ", dlist[0])
-                lrlb = len(Remote_List)    
-                Remote_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
-                lrla = len(Remote_List)
+                lrlb = len(Remote_Chan_List)    
+                Remote_Chan_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
+                lrla = len(Remote_Chan_List)
                 if lrla != lrlb:
                     print("Now tracking channel: ", dlist[0])
-                # print ('Remote_List is: ', Remote_List)
+                # print ('Remote_Chan_List is: ', Remote_Chan_List)
                 # endif
+                if len(dlist) >= 5:     # if there is a system name in the message
+                    if (dlist[4] in Remote_Sys_List):
+                        if Remote_Sys_List[dlist[4]] == 0: # if it got set to zero by being late
+                            print("Remote system is back up: ", dlist[4])
+                        Remote_Sys_List[dlist[4]] = time.time() + timeout
+                    else:
+                        print("Unknown remote system: ", dlist[4])
+
+                # end if len(ldlist)
             # end if data
         # end else server_socket            
     # end for sock
     
-    # now go thru arrival times list and see if someone is late
-    for chan, chan_time in Remote_List.iteritems():
+    # now go thru arrival times lists for channels and systems and see if someone is late
+
+    latechan = False
+    for chan, chan_time in Remote_Chan_List.iteritems():
         if chan_time != 0 and time.time() > chan_time:
             print("Missing data from channel: " + chan + " - sending text")
             ret_sms = send_sms("Missing data from Channel: "+ chan, dfm_cell) 
-            Remote_List[chan] = 0 # just print it once, it will get reset above if it wakes up
-        #else:
-            #print("Time,Channel, time ok: ", time.time(), chan, chan_time)
+            Remote_Chan_List[chan] = 0 # just print it once, it will get reset above if it wakes up
+            latechan = True # remember if a channel is late, no need to also print its system
+            
+    for sys_name, sys_time in Remote_Sys_List.iteritems():
+        if sys_time != 0 and time.time() > sys_time:
+            print("Missing data from system: " + sys_name + " - sending text")
+            if not latechan:
+                ret_sms = send_sms("Missing data from System: " + sys_name, dfm_cell) 
+            Remote_Sys_List[sys_name] = 0 # just print it once, it will get reset above if it wakes up
+            
+
+
 
     # now look at the list of critical processes and see if they are still up and running
 
@@ -189,7 +216,7 @@ while True:
             else:
                 if (process in ps_out) and (ipc == -1):
                     print("Process has restarted: ", process)
-                    # maybe sms call here?
+                    # put sms call here?
                     body_str = "Process " + process + " has restarted."
                     ret_sms = send_sms(body_str, dfm_cell)
                     watch_processes[process]=1
