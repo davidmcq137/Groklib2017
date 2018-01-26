@@ -16,6 +16,7 @@ datadog = "*"
 python-nest = "*"
 pyinotify = "*"
 watchdog = "*"
+xmltodict = "*"
 
 
 [requires]

@@ -14,7 +14,7 @@ from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-timeout = 180.0         # seconds before a reading, once heard from, is considered late for channels and systems
+timeout = 240.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
@@ -27,11 +27,11 @@ RECV_BUFFER = 256       # advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
-watch_processes={"weewxd":0,
-                 "read-remotes.py":0, # umm .. this prog can't watch itself...
-                 "read-wx.py":0,
+#watch_processes={"weewxd":0,
+
+watch_processes={"read-wx-WU.py":0,
                  "read-ted.py":0,
-                 "read-wx.py":0}
+                 "read-nest.py":0}
 iproc = 0
 NPROC = 100
 

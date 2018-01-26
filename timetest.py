@@ -1,10 +1,11 @@
+from __future__ import print_function
 import datetime
 import time
 
 ticks0 = time.time()
 print("Time is",ticks0)
 
-string = input("Hit return when ready: ")
+string = raw_input("Hit return when ready: ")
 
 ticks1 = time.time()
 
