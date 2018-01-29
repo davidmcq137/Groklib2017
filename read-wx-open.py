@@ -132,19 +132,19 @@ while True:
     last_epoch = epoch
     
     print ("wxdict['temp']: ", wxdict['temp'])
-    statsdb.statsdb("Outside Temp", wxdict['temp'])
+    statsdb.statsdb("OW Outside Temp", wxdict['temp'])
             
     print ("wxdict['pressure']", wxdict['pressure'] * 0.029530)
-    statsdb.statsdb("Barometer", wxdict['pressure'] * 0.029530)
+    statsdb.statsdb("OW Barometer", wxdict['pressure'] * 0.029530)
             
     print ("wxdict['humidity']", wxdict['humidity'])
-    statsdb.statsdb("Humidity", wxdict['humidity'])
+    statsdb.statsdb("OW Humidity", wxdict['humidity'])
             
-    print ("wxdict['wind']", wxdict['wind']) statsdb.statsdb("Wind
-    Speed", wxdict['wind'])
+    print ("wxdict['wind']", wxdict['wind'])
+    statsdb.statsdb("OW Wind Speed", wxdict['wind'])
 
     print ("wxdict['wind_deg']", wxdict['wind_deg'])
-    statsdb.statsdb("Wind Direction", wxdict['wind_deg'])
+    statsdb.statsdb("OW Wind Direction", wxdict['wind_deg'])
             
     sys.stdout.flush()
     time.sleep(120)

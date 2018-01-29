@@ -31,9 +31,12 @@ tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
 watch_processes={"read-wx-WU.py":0,
                  "read-ted.py":0,
-                 "read-nest.py":0}
+                 "read-nest.py":0,
+                 "watch-read.py":0}  # watch-read.py watches this program (read-remotes)
 iproc = 0
 NPROC = 100
+kproc = 0
+HB_PROC = 1000
 
 # read the config here so we have dfm_cell in the main prog
 # inelegant that subroutine send_sms re-reads. think of a better way...
@@ -149,14 +152,15 @@ while True:
                 if len(dlist) >=4 and dlist[3] == 'DD':
                     if dlist[0][0] !='#':  #special first character .. no value for channel .. don't send
                         #print ('Calling statsd.gauge with: ', dlist[0], dlist[2])
-                        statsd.gauge(dlist[0], dlist[2]) # this is the only place in the system calling statsd
+                        statsd.gauge(dlist[0], dlist[2]) # this is the only place in the
+                                                         # system calling statsd exc heartbeat below
                 
                 # correct the string to remove the leading "#" before checking timing
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
                     dlist[0] = tempstr[1:]
                 if dlist[0] in Remote_Chan_List:      # if a channel we know about
-                  if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late... then it's back
+                  if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late then it's back
                       print("Channel has resumed reporting: ", dlist[0])
                 lrlb = len(Remote_Chan_List)    
                 Remote_Chan_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
@@ -194,9 +198,13 @@ while True:
             if not latechan:
                 ret_sms = send_sms("Missing data from System: " + sys_name, dfm_cell) 
             Remote_Sys_List[sys_name] = 0 # just print it once, it will get reset above if it wakes up
-            
 
-
+    # send heartbeat signal to DD to be able to warn if this prog dies .. every 200 secs if HB_PROC=1000
+    
+    kproc = kproc + 1
+    if kproc >= HB_PROC:
+        kproc = 0
+        statsd.gauge("HEART_BEAT", 137.137) # give a signal for DD to warn if this proc stops
 
     # now look at the list of critical processes and see if they are still up and running
 

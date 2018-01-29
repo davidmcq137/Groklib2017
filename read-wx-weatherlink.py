@@ -90,8 +90,9 @@ while True:
     relative_humidity = curr_api_dict['current_observation']['relative_humidity']
     print("relative_humidity: ", relative_humidity)
 
-    lower_garage = curr_api_dict['current_observation']['davis_current_observation']['temp_extra_1']
-    print("Lower Garage Temp: ", lower_garage)
+    # lower_garage = curr_api_dict['current_observation']['davis_current_observation']['temp_extra_1']
+    # print("Lower Garage Temp: ", lower_garage)
+
 
     print("Observation age: ",
           curr_api_dict['current_observation']['davis_current_observation']['observation_age'])
@@ -101,7 +102,7 @@ while True:
     statsdb.statsdb("Davis Humidity", relative_humidity)
     statsdb.statsdb("Davis Wind Speed", wind_mph)
     statsdb.statsdb("Davis Wind Direction", wind_degrees)
-    statsdb.statsdb("Davis Garage Temp", lower_garage)
+    # statsdb.statsdb("Davis Garage Temp", lower_garage)
 
     sys.stdout.flush()
     time.sleep(120)
