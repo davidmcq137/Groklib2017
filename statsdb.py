@@ -24,5 +24,19 @@ def statsdb(channel, value):
 
     return
 
+def write_channels(x_dict, c_dict, prt=False, sdb=True):
+    for c,l in c_dict.iteritems():
+        v = str(read_nested_dict(x_dict, l))
+        if prt: print(c + ': ' + v)
+        if sdb: statsdb(c,v)
+                        
+def read_nested_dict(in_dict, keylist):
+    firstkey = keylist.pop(0)
+    idgf = in_dict.get(firstkey)
+    if idgf == None: return (None)
+    if len(keylist) > 0:
+        return(read_nested_dict(idgf, keylist))
+    else:
+        return(idgf)
 
 

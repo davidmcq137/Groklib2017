@@ -138,7 +138,7 @@ while True:
                 time_loc = int(time.time())
                 time_rem = int(dlist[1])
                 if time_loc - time_rem > 10:
-                    print("Time diff greater than 10s")
+                    print("Time diff greater than 10s at: ", datetime.datetime.now())
                     print("Channel, loc, rem: " + dlist[0] + " " + str(time_loc) + " " + str(time_rem))
                 # we are using the remote system's time .. should we use this system's time?    
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
