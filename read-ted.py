@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from __future__ import with_statement
 
 import requests
 import re
@@ -9,83 +10,49 @@ import sys
 import datetime
 #from datadog import statsd
 import statsdb
+import xmltodict
 
 ipoll = 0
 
 with open('/tmp/read-ted.py.pid', 'w') as f:
     f.write(str(os.getpid()))
 
+link="http://10.0.0.41/api/LiveData.xml"
+
 while True:    
-    link="http://10.0.0.41/api/LiveData.xml"
 
     while True:
         ipoll = ipoll + 1
-        print("Polling TED at: "+str(datetime.datetime.now())+ " ["+str(ipoll)+"]" )
+        print("Polling TED at: " + str(datetime.datetime.now()))
         try:
-            f = requests.get(link, timeout=2.0)
+            rc = requests.get(link, timeout=2.0)
+            ted_api_dict = xmltodict.parse(rc.text)
+            ipoll = 0
             break
         except:
-            print("Exception on request to TED: " +str(sys.exc_info()[0])+' ['+ str(datetime.datetime.now())+']' )
-            print("Return code from requests.get: ", f.status_code)
+            print("Exception on request to TED: " + str(sys.exc_info()[0]) +' ['+ str(datetime.datetime.now())+']' )
+            print("Return code from requests.get: ", rc.status_code)
             sys.stdout.flush()
-            time.sleep(10)
+            if ipoll > 100:
+                print("Too many read errors on TED: exiting")
+                exit()
+            else:
+                time.sleep(10)
+            
 
-    myfile=f.text
+    voltage_now = float(ted_api_dict['LiveData']['Voltage']['Total']['VoltageNow'])/10.0
+    power_now   = float(ted_api_dict['LiveData']['Power']['Total']['PowerNow'])
 
-    result = re.search("<Voltage>(.*?)</Voltage>", str(myfile), re.DOTALL)
-
-    if result:
-       volt_result=result.group(1)
-    else:
-        volt_result='Not Found volt_result'
-
-    result = re.search("<Total>(.*)</Total>", volt_result, re.DOTALL)
-
-    if result:
-        volt_total_result=result.group(1)
-    else:
-        volt_total_result='Not Found volt_total_result'
-
-    result = re.search("<VoltageNow>(.*?)</VoltageNow>", volt_total_result)
-
-    if result:
-        volt_now_result=result.group(1)
-    else:
-        volt_now_result='Not found volt_now_result'
-
-    vnow=float(volt_now_result)/10.0
-    print ("Voltage: "+str(vnow))
-    statsdb.statsdb('Voltage', str(vnow))
-
-    result = re.search("<Power>(.*?)</Power>", str(myfile), re.DOTALL)
-
-    if result:
-        power_result=result.group(1)
-    else:
-        power_result='Not Found power_result'
-
-    result = re.search("<Total>(.*)</Total>", power_result, re.DOTALL)
-
-    if result:
-        power_total_result=result.group(1)
-    else:
-        power_total_result='Not Found power_total_result'
-
-    result = re.search("<PowerNow>(.*?)</PowerNow>", power_total_result)
-
-    if result:
-        power_now_result=result.group(1)
-    else:
-        power_now_result='Not found power_now_result'
-
-    pnow=float(power_now_result)
-    print ("Power now: "+str(pnow))
-    statsdb.statsdb('Power', pnow)
+    print('VoltageNow: ', voltage_now)
+    print('PowerNow: ', power_now)
+    
+    statsdb.statsdb('Voltage', voltage_now)
+    statsdb.statsdb('Power', power_now)
 
 
     sys.stdout.flush()
-    time.sleep(20)
+    time.sleep(30)
 
-pass
+
 
 

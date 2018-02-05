@@ -73,36 +73,61 @@ while True:
     
     print(datetime.datetime.now())
     
-    print(curr_api_dict['current_observation']['observation_time'])
+    print(curr_api_dict.get('current_observation').get('observation_time'))
     
-    pressure_in = float(curr_api_dict['current_observation']['pressure_in'])
-    print("pressure_in: ", curr_api_dict['current_observation']['pressure_in'])
+    dd = curr_api_dict.get('current_observation').get('pressure_in')
+    if dd == None:
+          pressure_in = 'None'
+    else:
+          pressure_in = float(dd)
+          
+    print("pressure_in: ", pressure_in)
 
-    wind_mph = float(curr_api_dict['current_observation']['wind_mph'])
-    print("wind_mph: ", curr_api_dict['current_observation']['wind_mph'])
+    dd = curr_api_dict.get('current_observation').get('wind_mph')
+    if dd == None:
+          wind_mph = 'None'
+    else:
+          wind_mph = float(dd)
 
-    wind_degrees = float(curr_api_dict['current_observation']['wind_degrees'])
-    print("wind_degrees: ", curr_api_dict['current_observation']['wind_degrees'])
+    dd  = curr_api_dict.get('current_observation').get('wind_degrees')
+    if dd == None:
+          wind_degrees = 'None'
+    else:
+          wind_degrees = float(dd)
 
-    temp_f = float(curr_api_dict['current_observation']['temp_f'])
-    print("temp_f: ", curr_api_dict['current_observation']['temp_f'])
+    dd = curr_api_dict.get('current_observation').get('temp_f')
+    if dd == None:
+        temp_f = 'None'
+    else:
+        temp_f = float(dd)
+    
 
-    relative_humidity = curr_api_dict['current_observation']['relative_humidity']
+    dd  = curr_api_dict.get('current_observation').get('relative_humidity')
+    if dd == None:
+          relative_humidity = 'None'
+    else:
+          relative_humidity = float(dd)
+          
     print("relative_humidity: ", relative_humidity)
 
-    # lower_garage = curr_api_dict['current_observation']['davis_current_observation']['temp_extra_1']
-    # print("Lower Garage Temp: ", lower_garage)
+    dd = curr_api_dict.get('current_observation').get('davis_current_observation').get('temp_extra_1')
+    if dd == None:
+          lower_garage = 'None'
+    else:
+          lower_garage = float(dd)
+          
+    print("Lower Garage Temp: ", lower_garage)
 
 
     print("Observation age: ",
-          curr_api_dict['current_observation']['davis_current_observation']['observation_age'])
+          curr_api_dict.get('current_observation').get('davis_current_observation').get('observation_age'))
 
     statsdb.statsdb("Davis Outside Temp", temp_f)
     statsdb.statsdb("Davis Barometer", pressure_in)
     statsdb.statsdb("Davis Humidity", relative_humidity)
     statsdb.statsdb("Davis Wind Speed", wind_mph)
     statsdb.statsdb("Davis Wind Direction", wind_degrees)
-    # statsdb.statsdb("Davis Garage Temp", lower_garage)
+    statsdb.statsdb("Davis Garage Temp", lower_garage)
 
     sys.stdout.flush()
     time.sleep(120)

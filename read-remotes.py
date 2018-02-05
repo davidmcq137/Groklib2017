@@ -14,7 +14,7 @@ from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-timeout = 240.0         # seconds before a reading, once heard from, is considered late for channels and systems
+timeout = 300.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
@@ -143,10 +143,17 @@ while True:
                 # we are using the remote system's time .. should we use this system's time?    
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
-                if dlist[0][0] != '#': # special first char .. if "#" then no value (E.g. wind dir)
+                # special first char .. if "#" then no value (E.g. wind dir)
+                # or in some cases "None" as a channel value from Wx readers
+                if dlist[0][0] != '#' and dlist[2] != 'None':
                     #print("SQL insert: ", sstr)
-                    c.execute(sstr)
-                    conn.commit()
+                    try:
+                        c.execute(sstr)
+                        conn.commit()
+                    except:
+                        print("Error on SQLite c.execute/conn.commit")
+                        print("dlist: ", dlist)
+                        print("sstr: ", sstr)
                 #print ("Length of dlist: ", len(dlist))
                 #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
