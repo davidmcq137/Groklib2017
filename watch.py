@@ -15,7 +15,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 watched_files = {"read-ted.py": True,
-                 "read-wx-WU.py": True,
+                 "read-wx-wl.py": True,
                  "read-nest.py": True,
                  "watch-read.py": True}
 

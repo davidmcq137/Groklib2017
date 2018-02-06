@@ -13,7 +13,7 @@ chan_dict={'Garage_temp' : ['current_observation', 'davis_current_observation','
            'Garage_wzyx' : ['current_observation', 'davis_current_observation','temp_extra_Z'],
            'Garage_xyzw' : ['current_observation', 'xyzzy','temp_extra_1'] }
     
-with open('~/weatherlink.xml', 'r') as fp:
+with open('weatherlink.xml', 'r') as fp:
     xml_body = fp.read()
 
 curr_api_dict = xmltodict.parse(xml_body)
