@@ -19,8 +19,6 @@ did12 = DigitalInputDevice(12)
 didvals = {did21:0, did20:0, did16:0, did12:0}
 didname = {did21:'2FEmergHeatWire', did20:'2FAirCondWire', did16:'2FFanWire', did12:'2FHeatWire'}
 
-server_address = ('10.0.0.48',10137)
-
 while True:
 
     # First sample about 1 secs of data, 120 samples spaced by 1/120 sec
@@ -44,9 +42,7 @@ while True:
         else:
             didvals[k] = 1.0
         print(didname[k], didvals[k])
-    
         statsdb.statsdb(didname[k], didvals[k])
-
     time.sleep(30)
 pass
     
