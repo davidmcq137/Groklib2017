@@ -17,7 +17,11 @@ did16 = DigitalInputDevice(16)
 did12 = DigitalInputDevice(12)
 
 didvals = {did21:0, did20:0, did16:0, did12:0}
-didname = {did21:'2FEmergHeatWire', did20:'2FAirCondWire', did16:'2FFanWire', did12:'2FHeatWire'}
+
+didname = {did21:'2FEmergHeatWire', # Brown?
+           did20:'2FAirCondWire',   # Yellow
+           did16:'2FFanWire',       # Green
+           did12:'2FHeatWire'}      # White
 
 while True:
 
@@ -34,6 +38,8 @@ while True:
     # Now normalize the results. If signal on (24VAC) expect half-wave rectified 60 Hz sinewave
     # with avg val of about 0.5 ... set on/off threshold at half of that or 0.25
     # write out the samples to statsdb
+
+    print("Wire status at: ", datetime.datetime.now())
 
     for k in didvals:
         didvals[k] = didvals[k]/120.0
