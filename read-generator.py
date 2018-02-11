@@ -80,7 +80,7 @@ lcd.write("                ")
 print("Startup: about to send text to DFM cell [" + str(datetime.datetime.now()) + "]")
 
 body = "Generator monitor program launching"
-###send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
 print("Text sent, beginning light sample loop")
 

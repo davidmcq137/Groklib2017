@@ -34,6 +34,8 @@ def poll_ted(link):
     ipoll = 0
     while True:
         ipoll = ipoll + 1
+        if ipoll > 1:
+            print("Iterating TED poll#: ", ipoll)
         try:
             rcc = requests.get(link, timeout=2.0)
             ipoll = 0
@@ -41,9 +43,8 @@ def poll_ted(link):
         except:
             print("Exception on request to TED: " +
                   str(sys.exc_info()[0]) +' ['+ str(datetime.datetime.now())+']' )
-            print("Return code from requests.get: ", rcc.status_code)
             sys.stdout.flush()
-            if ipoll > 30:
+            if ipoll > 1000:
                 print("Too many read errors on TED: exiting")
                 exit()
             else:

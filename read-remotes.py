@@ -18,12 +18,12 @@ timeout = 300.0         # seconds before a reading, once heard from, is consider
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
-Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime}
+Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime, "jenny":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
 
 CONNECTION_LIST = []    # list of socket clients
-RECV_BUFFER = 256       # advisable to keep it as an exponent of 2
+RECV_BUFFER = 8192      # advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
@@ -105,16 +105,31 @@ for proc in watch_processes:
          
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #print ("Server socket: ", server_socket)
+
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(("0.0.0.0", PORT)) # maybe this should be 10.0.0.0 to only listen to local network?
-server_socket.listen(10)
+
+# set max # backlog connection requests to 32, was 10 but some progs (e.g. read-nest.py) have more than
+# 10 calls to statsdb .. and it was causing issues with late processing of channels
+# just set it larger for now .. think about a more elegant solution
+# e.g. making a subroutine to do batches of writes and sleeping every so many calls?
+# checked /proc/sys/net/core/somaxconn for this system and max is 128
+
+server_socket.listen(32)
  
 # Add server socket to the list of readable connections
 CONNECTION_LIST.append(server_socket)
  
 print ("SQLite read socket and insert loop started on port " + str(PORT))
- 
+
+loop_time = 0.0
+last_time = 0.0
+
 while True:
+    loop_time = time.time()
+    if loop_time - last_time > 1.0 and last_time != 0:
+        print("Loop time > 1 sec at " + str(datetime.datetime.now()) + ": ", str(loop_time-last_time))
+        last_time = loop_time
     # use non-blocking form of select.select with last parm = 0.0
     read_sockets,write_sockets,error_sockets = select.select(CONNECTION_LIST,[],[],0.0)
     # presumably if nothing read, for loop won't happen
@@ -139,7 +154,8 @@ while True:
                 time_rem = int(dlist[1])
                 if time_loc - time_rem > 10:
                     print("Time diff greater than 10s at: ", datetime.datetime.now())
-                    print("Channel, loc, rem: " + dlist[0] + " " + str(time_loc) + " " + str(time_rem))
+                    print("Channel, loc time, rem time, delta: " + dlist[0] + " " + str(time_loc) +
+                          " " + str(time_rem) + " " + str(time_loc-time_rem))
                 # we are using the remote system's time .. should we use this system's time?    
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
