@@ -18,10 +18,10 @@ did12 = DigitalInputDevice(12)
 
 didvals = {did21:0, did20:0, did16:0, did12:0}
 
-didname = {did21:'2FEmergHeatWire', # Brown?
-           did20:'2FAirCondWire',   # Yellow
-           did16:'2FFanWire',       # Green
-           did12:'2FHeatWire'}      # White
+didname = {did21:'USPowerWire', # Yellow
+           did20:'USEmergWire',  # White
+           did16:'USFanWire',    # Green
+           did12:'USHeatACWire'}  # Red
 
 while True:
 
