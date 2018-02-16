@@ -65,7 +65,7 @@ chan_pwr ={'PowerLeft '  :['DialDataDetail', 'MTUVal', 'MTU1', 'Value'],
 # spy_list: list of connected spyders. 1-8 on MTU1, 9-16 on MTU2
 # channel names are set in the Footprints tool, pre-pended with "SP-" here
 
-spy_list=[1,2,3,4,5,6,7,9,10,11,12]
+spy_list=[1,2,3,4,5,6,7,9,10,11,12,13,14,15]
 
 
 while True:

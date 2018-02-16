@@ -55,6 +55,13 @@ def data_organizer(raw_api_dict):
         r3h = raw_api_dict.get('rain').get('3h')
 
     #print ("rain3h: ", r3h)
+    try:
+        country=raw_api_dict.get('sys').get('country'),
+    except:
+        print("exception on country=raw...")
+        print(raw_api_dict)
+        exit()
+            
     data = dict(
 
         city=raw_api_dict.get('name'),
