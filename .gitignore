@@ -4,4 +4,6 @@ Pipfile.lock
 *.log
 *.db
 nohup.*
+.#*
+*.pyc
 
