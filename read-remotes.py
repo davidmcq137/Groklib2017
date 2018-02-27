@@ -10,20 +10,23 @@ import datetime
 import socket
 import select
 import subprocess
+import cPickle as pickle
 from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-timeout = 300.0         # seconds before a reading, once heard from, is considered late for channels and systems
+timeout = 600.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
 Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime, "jenny":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
+Remote_Chan_Vals = {}   # values of the channels
+Remote_Chan_Sys =  {}   # system name the channel came from
 
 CONNECTION_LIST = []    # list of socket clients
-RECV_BUFFER = 8192      # advisable to keep it as an exponent of 2
+RECV_BUFFER = 16384     # advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
@@ -115,7 +118,7 @@ server_socket.bind(("0.0.0.0", PORT)) # maybe this should be 10.0.0.0 to only li
 # e.g. making a subroutine to do batches of writes and sleeping every so many calls?
 # checked /proc/sys/net/core/somaxconn for this system and max is 128
 
-server_socket.listen(32)
+server_socket.listen(64)
  
 # Add server socket to the list of readable connections
 CONNECTION_LIST.append(server_socket)
@@ -163,6 +166,7 @@ while True:
                 # or in some cases "None" as a channel value from Wx readers
                 if dlist[0][0] != '#' and dlist[2] != 'None':
                     #print("SQL insert: ", sstr)
+                    t0 = time.time()
                     try:
                         c.execute(sstr)
                         conn.commit()
@@ -170,6 +174,9 @@ while True:
                         print("Error on SQLite c.execute/conn.commit")
                         print("dlist: ", dlist)
                         print("sstr: ", sstr)
+                    t1 = time.time()
+                    if (t1-t0 > 100.0):
+                        print("SQLite call longer than 100s at", datetime.datetime.now())
                 #print ("Length of dlist: ", len(dlist))
                 #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
@@ -187,6 +194,8 @@ while True:
                       print("Channel has resumed reporting: ", dlist[0])
                 lrlb = len(Remote_Chan_List)    
                 Remote_Chan_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
+                Remote_Chan_Vals[dlist[0]] = dlist[2]
+                Remote_Chan_Sys [dlist[0]] = dlist[4]
                 lrla = len(Remote_Chan_List)
                 if lrla != lrlb:
                     print("Now tracking channel: ", dlist[0])
@@ -252,6 +261,13 @@ while True:
                     ret_sms = send_sms(body_str, dfm_cell)
                     watch_processes[process]=1
                     #process is running, note it
+        fpp = open('read-remotes.pkl', 'wb')
+        pickle.dump(Remote_Sys_List, fpp)
+        pickle.dump(Remote_Chan_List, fpp)
+        pickle.dump(Remote_Chan_Vals, fpp)
+        pickle.dump(Remote_Chan_Sys, fpp)
+        pickle.dump(watch_processes, fpp)
+        fpp.close()
     #end if iproc           
     sys.stdout.flush()
     time.sleep(0.2)

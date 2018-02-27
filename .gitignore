@@ -6,4 +6,4 @@ Pipfile.lock
 nohup.*
 .#*
 *.pyc
-
+*.pkl
