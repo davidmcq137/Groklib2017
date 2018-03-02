@@ -14,6 +14,7 @@ import cPickle as pickle
 from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
+from ISStreamer.Streamer import Streamer
 
 timeout = 600.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
@@ -51,6 +52,20 @@ config.read(osp)
 dfm_cell = config.get('PHONES','dfm_cell')
 
 print("Will text alerts to: ", dfm_cell)
+
+config2=ConfigParser.ConfigParser()
+osp = os.path.expanduser('~/InitialState.conf')
+config2.read(osp)
+
+accessKey = config2.get('KEYS','accessKey')
+bucketKey = config2.get('KEYS','bucketKey')
+
+print("Initial State Access key: ", accessKey)
+print("Initial State Bucket key: ", bucketKey)
+
+streamer = Streamer(bucket_name='Hazel', bucket_key=bucketKey, access_key=accessKey)
+streamer.log("Log Messages", "read-remotes.py starting up at: " + str(datetime.datetime.now()))
+
 
 def send_sms(body, dest):
     
@@ -184,7 +199,7 @@ while True:
                         #print ('Calling statsd.gauge with: ', dlist[0], dlist[2])
                         statsd.gauge(dlist[0], dlist[2]) # this is the only place in the
                                                          # system calling statsd exc heartbeat below
-                
+                        streamer.log(dlist[0], dlist[2])
                 # correct the string to remove the leading "#" before checking timing
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
