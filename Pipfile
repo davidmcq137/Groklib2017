@@ -18,6 +18,7 @@ pyinotify = "*"
 watchdog = "*"
 xmltodict = "*"
 flask = "*"
+isstreamer = "*"
 
 
 [requires]
