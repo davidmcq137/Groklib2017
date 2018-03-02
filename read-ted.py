@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from __future__ import with_statement
 
 import requests
 import re
@@ -9,83 +10,86 @@ import sys
 import datetime
 #from datadog import statsd
 import statsdb
+import xmltodict
 
-ipoll = 0
 
+def read_spyder(slist):
+
+    url_left  = 'http://10.0.0.35/history/export.csv?T=1&D=1&M='
+    url_right = '&C=1'
+    ret_dict={}
+
+    for sp in slist:
+        url=url_left + '{:d}'.format(sp) + url_right
+        rc = poll_ted(url)
+        lines=rc.text.splitlines()
+        vals =lines[1].split(',')
+        chan = 'SP-' + vals[0]
+        pwr=vals[2]
+        ret_dict[chan]=pwr
+
+    return ret_dict
+
+def poll_ted(link):
+    ipoll = 0
+    while True:
+        ipoll = ipoll + 1
+        if ipoll > 1:
+            print("Iterating TED poll#: ", ipoll)
+        try:
+            rcc = requests.get(link, timeout=2.0)
+            ipoll = 0
+            break
+        except:
+            print("Exception on request to TED: " +
+                  str(sys.exc_info()[0]) +' ['+ str(datetime.datetime.now())+']' )
+            sys.stdout.flush()
+            if ipoll > 1000:
+                print("Too many read errors on TED: exiting")
+                exit()
+            else:
+                time.sleep(10)
+    return rcc
+    
 with open('/tmp/read-ted.py.pid', 'w') as f:
     f.write(str(os.getpid()))
 
-while True:    
-    link="http://10.0.0.41/api/LiveData.xml"
+sys_ovr="http://10.0.0.35/api/SystemOverview.xml?T=0"
 
-    while True:
-        ipoll = ipoll + 1
-        print("Polling TED at: "+str(datetime.datetime.now())+ " ["+str(ipoll)+"]" )
-        try:
-            f = requests.get(link, timeout=2.0)
-            break
-        except:
-            print("Exception on request to TED: " +str(sys.exc_info()[0])+' ['+ str(datetime.datetime.now())+']' )
-            print("Return code from requests.get: ", f.status_code)
-            sys.stdout.flush()
-            time.sleep(10)
+chan_volt={'VoltageLeft' :['DialDataDetail', 'MTUVal', 'MTU1', 'Voltage'],
+           'VoltageRight':['DialDataDetail', 'MTUVal', 'MTU2', 'Voltage']}
 
-    myfile=f.text
+chan_pwr ={'PowerLeft '  :['DialDataDetail', 'MTUVal', 'MTU1', 'Value'],
+           'PowerRight'  :['DialDataDetail', 'MTUVal', 'MTU2', 'Value'] }
 
-    result = re.search("<Voltage>(.*?)</Voltage>", str(myfile), re.DOTALL)
+# spy_list: list of connected spyders. 1-8 on MTU1, 9-16 on MTU2
+# channel names are set in the Footprints tool, pre-pended with "SP-" here
 
-    if result:
-       volt_result=result.group(1)
-    else:
-        volt_result='Not Found volt_result'
+spy_list=[1,2,3,4,5,6,7,9,10,11,12,13,14,15]
 
-    result = re.search("<Total>(.*)</Total>", volt_result, re.DOTALL)
 
-    if result:
-        volt_total_result=result.group(1)
-    else:
-        volt_total_result='Not Found volt_total_result'
+while True:
+    
+    print("Polling TED at: " + str(datetime.datetime.now()))
 
-    result = re.search("<VoltageNow>(.*?)</VoltageNow>", volt_total_result)
+    rc = poll_ted(sys_ovr)
+    ted_api_dict = xmltodict.parse(rc.text)
 
-    if result:
-        volt_now_result=result.group(1)
-    else:
-        volt_now_result='Not found volt_now_result'
+    statsdb.write_channels(ted_api_dict, chan_volt, prt=False, sdb=True, div=10.0)
+    pp = statsdb.write_channels(ted_api_dict, chan_pwr , prt=False, sdb=True, div=1.0)
+    #print('Power: ', pp) # special feature: return code is sum of channel values
+    statsdb.statsdb('Power', pp)
+    
+    d = read_spyder(spy_list)
 
-    vnow=float(volt_now_result)/10.0
-    print ("Voltage: "+str(vnow))
-    statsdb.statsdb('Voltage', str(vnow))
-
-    result = re.search("<Power>(.*?)</Power>", str(myfile), re.DOTALL)
-
-    if result:
-        power_result=result.group(1)
-    else:
-        power_result='Not Found power_result'
-
-    result = re.search("<Total>(.*)</Total>", power_result, re.DOTALL)
-
-    if result:
-        power_total_result=result.group(1)
-    else:
-        power_total_result='Not Found power_total_result'
-
-    result = re.search("<PowerNow>(.*?)</PowerNow>", power_total_result)
-
-    if result:
-        power_now_result=result.group(1)
-    else:
-        power_now_result='Not found power_now_result'
-
-    pnow=float(power_now_result)
-    print ("Power now: "+str(pnow))
-    statsdb.statsdb('Power', pnow)
-
+    for kk, vv  in d.iteritems():
+        #print(kk, vv)
+        statsdb.statsdb(kk, vv)
+        
 
     sys.stdout.flush()
-    time.sleep(20)
+    time.sleep(60)
 
-pass
+
 
 

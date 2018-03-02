@@ -10,20 +10,23 @@ import datetime
 import socket
 import select
 import subprocess
+import cPickle as pickle
 from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 
-timeout = 240.0         # seconds before a reading, once heard from, is considered late for channels and systems
+timeout = 600.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
-Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime}
+Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime, "jenny":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
+Remote_Chan_Vals = {}   # values of the channels
+Remote_Chan_Sys =  {}   # system name the channel came from
 
 CONNECTION_LIST = []    # list of socket clients
-RECV_BUFFER = 256       # advisable to keep it as an exponent of 2
+RECV_BUFFER = 16384     # advisable to keep it as an exponent of 2
 PORT = 10137
 tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
@@ -31,9 +34,12 @@ tn = "HAZEL_MASTER"     # name stem for SQL logging database
 
 watch_processes={"read-wx-WU.py":0,
                  "read-ted.py":0,
-                 "read-nest.py":0}
+                 "read-nest.py":0,
+                 "watch-read.py":0}  # watch-read.py watches this program (read-remotes)
 iproc = 0
 NPROC = 100
+kproc = 0
+HB_PROC = 1000
 
 # read the config here so we have dfm_cell in the main prog
 # inelegant that subroutine send_sms re-reads. think of a better way...
@@ -102,16 +108,31 @@ for proc in watch_processes:
          
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #print ("Server socket: ", server_socket)
+
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(("0.0.0.0", PORT)) # maybe this should be 10.0.0.0 to only listen to local network?
-server_socket.listen(10)
+
+# set max # backlog connection requests to 32, was 10 but some progs (e.g. read-nest.py) have more than
+# 10 calls to statsdb .. and it was causing issues with late processing of channels
+# just set it larger for now .. think about a more elegant solution
+# e.g. making a subroutine to do batches of writes and sleeping every so many calls?
+# checked /proc/sys/net/core/somaxconn for this system and max is 128
+
+server_socket.listen(64)
  
 # Add server socket to the list of readable connections
 CONNECTION_LIST.append(server_socket)
  
 print ("SQLite read socket and insert loop started on port " + str(PORT))
- 
+
+loop_time = 0.0
+last_time = 0.0
+
 while True:
+    loop_time = time.time()
+    if loop_time - last_time > 1.0 and last_time != 0:
+        print("Loop time > 1 sec at " + str(datetime.datetime.now()) + ": ", str(loop_time-last_time))
+        last_time = loop_time
     # use non-blocking form of select.select with last parm = 0.0
     read_sockets,write_sockets,error_sockets = select.select(CONNECTION_LIST,[],[],0.0)
     # presumably if nothing read, for loop won't happen
@@ -135,31 +156,46 @@ while True:
                 time_loc = int(time.time())
                 time_rem = int(dlist[1])
                 if time_loc - time_rem > 10:
-                    print("Time diff greater than 10s")
-                    print("Channel, loc, rem: " + dlist[0] + " " + str(time_loc) + " " + str(time_rem))
+                    print("Time diff greater than 10s at: ", datetime.datetime.now())
+                    print("Channel, loc time, rem time, delta: " + dlist[0] + " " + str(time_loc) +
+                          " " + str(time_rem) + " " + str(time_loc-time_rem))
                 # we are using the remote system's time .. should we use this system's time?    
                 sstr=("INSERT INTO " + tn +" VALUES (" + "'" + dlist[0] + "'" + ","
                                      + str(dlist[1]) +"," +str(dlist[2]) +")")
-                if dlist[0][0] != '#': # special first char .. if "#" then no value (E.g. wind dir)
+                # special first char .. if "#" then no value (E.g. wind dir)
+                # or in some cases "None" as a channel value from Wx readers
+                if dlist[0][0] != '#' and dlist[2] != 'None':
                     #print("SQL insert: ", sstr)
-                    c.execute(sstr)
-                    conn.commit()
+                    t0 = time.time()
+                    try:
+                        c.execute(sstr)
+                        conn.commit()
+                    except:
+                        print("Error on SQLite c.execute/conn.commit")
+                        print("dlist: ", dlist)
+                        print("sstr: ", sstr)
+                    t1 = time.time()
+                    if (t1-t0 > 100.0):
+                        print("SQLite call longer than 100s at", datetime.datetime.now())
                 #print ("Length of dlist: ", len(dlist))
                 #print (dlist)
                 if len(dlist) >=4 and dlist[3] == 'DD':
                     if dlist[0][0] !='#':  #special first character .. no value for channel .. don't send
                         #print ('Calling statsd.gauge with: ', dlist[0], dlist[2])
-                        statsd.gauge(dlist[0], dlist[2]) # this is the only place in the system calling statsd
+                        statsd.gauge(dlist[0], dlist[2]) # this is the only place in the
+                                                         # system calling statsd exc heartbeat below
                 
                 # correct the string to remove the leading "#" before checking timing
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]
                     dlist[0] = tempstr[1:]
                 if dlist[0] in Remote_Chan_List:      # if a channel we know about
-                  if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late... then it's back
+                  if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late then it's back
                       print("Channel has resumed reporting: ", dlist[0])
                 lrlb = len(Remote_Chan_List)    
                 Remote_Chan_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
+                Remote_Chan_Vals[dlist[0]] = dlist[2]
+                Remote_Chan_Sys [dlist[0]] = dlist[4]
                 lrla = len(Remote_Chan_List)
                 if lrla != lrlb:
                     print("Now tracking channel: ", dlist[0])
@@ -194,9 +230,13 @@ while True:
             if not latechan:
                 ret_sms = send_sms("Missing data from System: " + sys_name, dfm_cell) 
             Remote_Sys_List[sys_name] = 0 # just print it once, it will get reset above if it wakes up
-            
 
-
+    # send heartbeat signal to DD to be able to warn if this prog dies .. every 200 secs if HB_PROC=1000
+    
+    kproc = kproc + 1
+    if kproc >= HB_PROC:
+        kproc = 0
+        statsd.gauge("HEART_BEAT", 137.137) # give a signal for DD to warn if this proc stops
 
     # now look at the list of critical processes and see if they are still up and running
 
@@ -221,6 +261,13 @@ while True:
                     ret_sms = send_sms(body_str, dfm_cell)
                     watch_processes[process]=1
                     #process is running, note it
+        fpp = open('read-remotes.pkl', 'wb')
+        pickle.dump(Remote_Sys_List, fpp)
+        pickle.dump(Remote_Chan_List, fpp)
+        pickle.dump(Remote_Chan_Vals, fpp)
+        pickle.dump(Remote_Chan_Sys, fpp)
+        pickle.dump(watch_processes, fpp)
+        fpp.close()
     #end if iproc           
     sys.stdout.flush()
     time.sleep(0.2)

@@ -17,6 +17,7 @@ python-nest = "*"
 pyinotify = "*"
 watchdog = "*"
 xmltodict = "*"
+flask = "*"
 
 
 [requires]
