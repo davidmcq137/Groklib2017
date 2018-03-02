@@ -196,8 +196,8 @@ while True:
 
         send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
         if st == 0: # only send LRM starting and ending messages
-            pass
-            # send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+            #pass
+            send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
     last_st = st
     sleep(0.2)
