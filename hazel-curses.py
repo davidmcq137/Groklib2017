@@ -151,7 +151,7 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, cst)
         stdscr.attroff(curses.color_pair(3))
         
-        icol = 0
+        icol = 14
         iypos = iypos + 2
 
         for kk in Remote_Sys_List:
@@ -160,6 +160,7 @@ def draw_menu(stdscr):
             else:
                 stdscr.addstr(iypos, icol, str(kk), curses.color_pair(2))                
             icol = icol + 20
+            
 
         # Add here: watch_process .. list of running processes
 
@@ -176,7 +177,7 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, cst)
         stdscr.attroff(curses.color_pair(3))
         
-        icol = 0
+        icol = 18
         iypos = iypos + 2
         
         for pp, ipp in watch_processes.iteritems():
@@ -184,68 +185,83 @@ def draw_menu(stdscr):
                 stdscr.addstr(iypos, icol, str(pp), curses.color_pair(4))
             else:
                 stdscr.addstr(iypos, icol, str(pp), curses.color_pair(2))                
-            icol = icol + 20
+            icol = icol + 30
+            if icol+30 > width:
+                icol = 18
+                iypos = iypos + 1
             
         
         # Print weather information
         
         iypos = iypos + 2
         stdscr.attron(curses.color_pair(3))
-        stdscr.addstr(iypos, 0, 'Current Weather')
-        stdscr.attroff(curses.color_pair(3))
 
-        stdscr.addstr(iypos + 2, 0, 'Outside Temperature ' + rcvs('Outside Temp') + 'F')
-        stdscr.addstr(iypos + 3, 0, 'Outside Humidity '    + rcvs('Humidity') + '%')
-        stdscr.addstr(iypos + 4, 0, 'Barometric Pressure ' + rcvs('Barometer') + ' in Hg')
+        stdscr.addstr(iypos, 0, '{:{align}{width}}'.format('Current Weather', align='^', width = width))
+        stdscr.attroff(curses.color_pair(3))
+        icol = 16
+        stdscr.addstr(iypos + 2, icol,    'Outside Temperature ' + rcvs('Outside Temp') + 'F')
+        stdscr.addstr(iypos + 2, icol+30, 'Outside Humidity '    + rcvs('Humidity') + '%')
+        stdscr.addstr(iypos + 2, icol+60, 'Barometric Pressure ' + rcvs('Barometer') + ' in Hg')
 
         stdscr.attron(curses.color_pair(3))
-        stdscr.addstr(iypos + 6, 0, 'Inside Conditions')
+        stdscr.addstr(iypos + 4, 0,
+                      '{:{align}{width}}'.format('Inside Conditions', align='^', width = width))
         stdscr.attroff(curses.color_pair(3))
 
-        iypos = iypos + 6
-        stdscr.addstr(iypos + 2, 0, 'Downstairs Temperature ' + rcvs('DS_TARGET') + 'F')
-        stdscr.addstr(iypos + 3, 0, 'Downstairs Humidity '    + rcvs('DS_HUM') + '%')
-        stdscr.addstr(iypos + 4, 0, 'Upstairs Temperature '   + rcvs('ST_TEMP') + 'F')
-        stdscr.addstr(iypos + 5, 0, 'Upstairs Humidity '      + rcvs('ST_HUM') + '%')        
+        iypos = iypos + 4
+        icol = 20
+        stdscr.addstr(iypos + 2, icol,      'Downstairs Temperature ' + rcvs('DS_TARGET') + 'F')
+        stdscr.addstr(iypos + 2, icol + 50, 'Downstairs Humidity '    + rcvs('DS_HUM') + '%')
+        stdscr.addstr(iypos + 3, icol,      'Upstairs Temperature '   + rcvs('ST_TEMP') + 'F')
+        stdscr.addstr(iypos + 3, icol + 50, 'Upstairs Humidity '      + rcvs('ST_HUM') + '%')        
 
-        iypos = iypos + 7
+        iypos = iypos + 5
 
         stdscr.attron(curses.color_pair(3))
-        stdscr.addstr(iypos, 0, 'Power Usage')
+        stdscr.addstr(iypos, 0,
+                      '{:{align}{width}}'.format('Power Usage: ' + rcvs('Power', div=1000.) + ' kW',
+                                                 align='^', width = width))
         stdscr.attroff(curses.color_pair(3))
-
-        stdscr.addstr(iypos + 2, 0, 'Current Power Usage ' + rcvs('Power', div=1000.) + ' kW')
-        stdscr.addstr(iypos + 3, 0, 'Downstairs Geo '    + rcvs('SP-1FGEOALL') + ' kW')
-        stdscr.addstr(iypos + 3, 30,'Downstairs Geo Duty Cycle ' + rcvs('DS_DUTY_CYCLE', mult=100.) + '%')
-        stdscr.addstr(iypos + 3, 70,'Downstairs Geo Period ' + rcvs('DS_PERIOD', div=60.0) + ' mins')        
+        icol = 6
+        stdscr.addstr(iypos + 2, icol,
+                      'Downstairs Geo '    + rcvs('SP-1FGEOALL') + ' kW')
+        stdscr.addstr(iypos + 2, icol + 35,
+                      'Downstairs Geo Duty Cycle ' + rcvs('DS_DUTY_CYCLE', mult=100.) + '%')
+        stdscr.addstr(iypos + 2, icol + 70,
+                      'Downstairs Geo Period ' + rcvs('DS_PERIOD', div=60.0) + ' mins')        
         
-        stdscr.addstr(iypos + 4, 0, 'Upstairs Geo   '   + rcvs('SP-2FGEOALL') + ' kW')
-        stdscr.addstr(iypos + 4, 30,'Upstairs Geo Duty Cycle   ' + rcvs('US_DUTY_CYCLE', mult=100.) + '%')
-        stdscr.addstr(iypos + 4, 70,'Upstairs Geo Period   ' + rcvs('US_PERIOD', div=60.0) + ' mins')                
+        stdscr.addstr(iypos + 3, icol,
+                      'Upstairs Geo   '   + rcvs('SP-2FGEOALL') + ' kW')
+        stdscr.addstr(iypos + 3, icol + 35,
+                      'Upstairs Geo Duty Cycle   ' + rcvs('US_DUTY_CYCLE', mult=100.) + '%')
+        stdscr.addstr(iypos + 3, icol + 70,
+                      'Upstairs Geo Period   ' + rcvs('US_PERIOD', div=60.0) + ' mins')                
 
 
         # Print list of channels being watched
 
-        iypos = iypos + 6
+        iypos = iypos + 5
         
         stdscr.attron(curses.color_pair(3))
-        stdscr.addstr(iypos, 0, 'Channels Monitored: ' + str(len(Remote_Chan_List)))
+        stdscr.addstr(iypos, 0,
+                      '{:{align}{width}}'.format('Channels Monitored: ' +
+                        str(len(Remote_Chan_List)), align='^', width = width))
         stdscr.attroff(curses.color_pair(3))        
 
         rcls = sorted(Remote_Chan_List)
         stdscr.attron(curses.color_pair(4))
         
-        icol = 10
-        irow = iypos + 2
+        icol = 7
+        irow = iypos + 3
 
         for kk in rcls:
             if Remote_Chan_List[kk] > 0:
-                stdscr.addstr(irow, icol, kk, curses.color_pair(4))
+                stdscr.addstr(irow, icol, kk.ljust(20) + "  " + rcv[kk], curses.color_pair(4))
             else:
-                stdscr.addstr(irow, icol, kk, curses.color_pair(2))            
-            icol = icol + 25
-            if (icol + 25 > width):
-                icol = 10
+                stdscr.addstr(irow, icol, kk.ljust(20) + "  " + rcv[kk], curses.color_pair(2))            
+            icol = icol + 36
+            if (icol + 36 > width):
+                icol = 7
                 irow = irow + 1
                 
         stdscr.move(0, 0)
