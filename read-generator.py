@@ -22,15 +22,19 @@ def btoi(v):
 
 def send_sms(dest, body, t_user, t_pass, t_num, t_acct):
     timestamp = datetime.datetime.now()
-    
-    ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+    try:    
+        ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
                     t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
                     data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
+    except:
+         ret_req=-1
+         print("Exception calling requests.post")
+
     print("Requests returns: ", ret_req)
     print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
 
 # Get the secrets from the config file
-
+ 
 config=ConfigParser.ConfigParser()
 osp = os.path.expanduser('~/twilio.conf')
 
@@ -84,6 +88,8 @@ send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
 print("Text sent, beginning light sample loop")
 
+gen_start_time = time.time() # in case gen is already running, this becomes the start time
+
 while True:
 
 # First sample about 4 secs of data, 20 samples spaced by 200ms
@@ -127,13 +133,9 @@ while True:
         excount = 0
     else:              #Gen is (maybe) exercising - count a few intervals
         excount = excount + 1
-        if excount >= 2:
+        if excount > 2:
             st  = 1
-            excount = 0 #added this line to stop double start message 
-        else:
-             st = 1 # changed this from last_st .. if not sure, move from 0 to 1 
-         
-        gs = 0.25  # to see if it's flashing for exercise or on the way to starting
+            gs = 0.25  # to see if it's flashing for exercise or on the way to starting
       
     index=index+1
 
@@ -155,11 +157,16 @@ while True:
         #statsd.gauge("Generator State", gs)
         #print("Calling statsdb", gs)
         statsdb.statsdb("GEN_STATE", gs)
-
+        if st != 0: # if not off ... must be on or exercising make channel if hrs on
+          gg = (time.time() - gen_start_time)/3600.0
+        else:
+          gg = 0.0
+        statsdb.statsdb("GEN_RUN_TIME", gg)
 
     if last_st != st:
 
         # print("last != .. st is: ", st)
+        gen_run_time = time.time() - gen_start_time
 
         if st == 0: # about to say gen is off .. add delta t string
             gen_run_time = time.time() - gen_start_time
@@ -167,8 +174,9 @@ while True:
             gen_off_str = ". Run time (m): {:.2f}".format(gen_run_time/60.0)
             lcd_off_str = "Last (m): {:3.1f}".format(gen_run_time/60.0)
         else:
-            lcd_off_str = "                "
+#           lcd_off_str = "                "
 #                          1234567890123456
+            lcd_off_str = "RunT (m): {:3.1f}".format(gen_run_time/60.0)
             gen_off_str = ''
 
         print("Texting [" + str(datetime.datetime.now()) + "] " + 
@@ -195,9 +203,7 @@ while True:
             
 
         send_sms(dfm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
-        if st == 0: # only send LRM starting and ending messages
-            pass
-            # send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
+        send_sms(lrm_cell, body, twilio_user, twilio_pass, twilio_num, twilio_acct)
 
     last_st = st
     sleep(0.2)
