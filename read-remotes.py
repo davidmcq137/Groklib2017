@@ -34,6 +34,8 @@ tn = "HAZEL_MASTER"     # name stem for SQL logging database
 #watch_processes={"weewxd":0,
 
 watch_processes={"read-wx-WU.py":0,
+                 "read-wx-weatherlink.py":0,
+                 "read-wx-open.py":0,
                  "read-ted.py":0,
                  "read-nest.py":0,
                  "watch-read.py":0}  # watch-read.py watches this program (read-remotes)
@@ -63,8 +65,8 @@ bucketKey = config2.get('KEYS','bucketKey')
 print("Initial State Access key: ", accessKey)
 print("Initial State Bucket key: ", bucketKey)
 
-streamer = Streamer(bucket_name='Hazel', bucket_key=bucketKey, access_key=accessKey)
-streamer.log("Log Messages", "read-remotes.py starting up at: " + str(datetime.datetime.now()))
+##### streamer = Streamer(bucket_name='Hazel', bucket_key=bucketKey, access_key=accessKey)
+##### streamer.log("Log Messages", "read-remotes.py starting up at: " + str(datetime.datetime.now()))
 
 
 def send_sms(body, dest):
@@ -80,13 +82,20 @@ def send_sms(body, dest):
     lrm_cell = config.get('PHONES'   , 'lrm_cell')
 
     timestamp = datetime.datetime.now()
+    print("About to send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
     
-    ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+    try:
+        ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
                     t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
-                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
-
+                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body},
+                    timeout=2.0)
+    except requests.exceptions.ConnectionError :
+        print('ConnectionError exception in Twilio API call: ' + str(sys.exc_info()[0]) +
+              ' ['+str(datetime.datetime.now())+']' )
+        ret_req = -1
+        
     #print("Requests returns: ", ret_req)
-    print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
+
     return ret_req
 
 
@@ -199,7 +208,8 @@ while True:
                         #print ('Calling statsd.gauge with: ', dlist[0], dlist[2])
                         statsd.gauge(dlist[0], dlist[2]) # this is the only place in the
                                                          # system calling statsd exc heartbeat below
-                        streamer.log(dlist[0], dlist[2])
+                        ##########streamer.log(dlist[0], dlist[2])
+                        pass
                 # correct the string to remove the leading "#" before checking timing
                 if dlist[0][0] == '#':
                     tempstr=dlist[0]

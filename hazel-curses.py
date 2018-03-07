@@ -194,19 +194,19 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, 'Current Weather')
         stdscr.attroff(curses.color_pair(3))
 
-        stdscr.addstr(iypos + 2, 0, 'Outside Temperature ' + Remote_Chan_Vals['Outside Temp'] + 'F')
-        stdscr.addstr(iypos + 3, 0, 'Outside Humidity '    + Remote_Chan_Vals['Humidity'] + '%')
-        stdscr.addstr(iypos + 4, 0, 'Barometric Pressure ' + Remote_Chan_Vals['Barometer'] + ' in Hg')
+        stdscr.addstr(iypos + 2, 0, 'Outside Temperature ' + rcvs('Outside Temp') + 'F')
+        stdscr.addstr(iypos + 3, 0, 'Outside Humidity '    + rcvs('Humidity') + '%')
+        stdscr.addstr(iypos + 4, 0, 'Barometric Pressure ' + rcvs('Barometer') + ' in Hg')
 
         stdscr.attron(curses.color_pair(3))
         stdscr.addstr(iypos + 6, 0, 'Inside Conditions')
         stdscr.attroff(curses.color_pair(3))
 
         iypos = iypos + 6
-        stdscr.addstr(iypos + 2, 0, 'Downstairs Temperature ' + Remote_Chan_Vals['DS_TARGET'] + 'F')
-        stdscr.addstr(iypos + 3, 0, 'Downstairs Humidity '    + Remote_Chan_Vals['DS_HUM'] + '%')
-        stdscr.addstr(iypos + 4, 0, 'Upstairs Temperature '   + Remote_Chan_Vals['ST_TEMP'] + 'F')
-        stdscr.addstr(iypos + 5, 0, 'Upstairs Humidity '      + Remote_Chan_Vals['ST_HUM'] + '%')        
+        stdscr.addstr(iypos + 2, 0, 'Downstairs Temperature ' + rcvs('DS_TARGET') + 'F')
+        stdscr.addstr(iypos + 3, 0, 'Downstairs Humidity '    + rcvs('DS_HUM') + '%')
+        stdscr.addstr(iypos + 4, 0, 'Upstairs Temperature '   + rcvs('ST_TEMP') + 'F')
+        stdscr.addstr(iypos + 5, 0, 'Upstairs Humidity '      + rcvs('ST_HUM') + '%')        
 
         iypos = iypos + 7
 

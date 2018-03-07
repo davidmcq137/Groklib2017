@@ -6,6 +6,7 @@ import subprocess
 import os
 import time
 import datetime
+import sys
 from requests.auth import HTTPBasicAuth
 
 config=ConfigParser.ConfigParser()
@@ -30,13 +31,21 @@ def send_sms(body, dest):
     lrm_cell = config.get('PHONES'   , 'lrm_cell')
 
     timestamp = datetime.datetime.now()
+    print("About to send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
     
-    ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+    try:
+        ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
                     t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
-                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
+                                 data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body},
+                                 timeout = 2.0)
+    except requests.exceptions.ConnectionError :
+        print('ConnectionError exception in Twilio API call: ' + str(sys.exc_info()[0]) +
+              ' ['+str(datetime.datetime.now())+']' )
+        ret_req = -1
+    
 
     #print("Requests returns: ", ret_req)
-    print("send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to "+dest)
+
     return ret_req
 
 watch_running = True # start by assuming its running

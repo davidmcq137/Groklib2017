@@ -14,10 +14,12 @@ import subprocess
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-watched_files = {"read-ted.py": True,
-                 "read-wx-wl.py": True,
-                 "read-nest.py": True,
-                 "watch-read.py": True}
+watched_files = {"read-ted.py"             : True,
+                 "read-wx-weatherlink.py"  : True,
+                 "read-wx-WU.py"           : True,
+                 "read-wx-open.py"         : True,
+                 "read-nest.py"            : True,
+                 "watch-read.py"           : True}
 
 def is_running(pid):        
     try:
