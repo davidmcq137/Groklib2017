@@ -25,7 +25,7 @@ def send_sms(dest, body, t_user, t_pass, t_num, t_acct):
     try:    
         ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
                     t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
-                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body})
+                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body}, timeout=2.0)
     except:
          ret_req=-1
          print("Exception calling requests.post")
