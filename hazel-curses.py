@@ -58,13 +58,13 @@ def draw_menu(stdscr):
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     
-
+    height, width = stdscr.getmaxyx()
+        
     while True:
 
         # Initialization
 
         stdscr.clear()
-        height, width = stdscr.getmaxyx()
 
         title = "Mt.McQueeney House Hazel"[:width-1]
         d = datetime.datetime.now()
@@ -119,6 +119,7 @@ def draw_menu(stdscr):
 
         statusbarstr = 'Last refresh of read-remotes.pkl at ' + rtime.strftime('%Y-%m-%d %H:%M:%S %Z')
         statusbarstr = statusbarstr + '  Pickle read errors: ' + str(ierr)
+        statusbarstr = statusbarstr + '      Term: ' + '{}x{}'.format(width,height)
         
         # Render status bar
         
@@ -177,7 +178,7 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, cst)
         stdscr.attroff(curses.color_pair(3))
         
-        icol = 18
+        icol = 20
         iypos = iypos + 2
         
         for pp, ipp in watch_processes.iteritems():
@@ -187,7 +188,7 @@ def draw_menu(stdscr):
                 stdscr.addstr(iypos, icol, str(pp), curses.color_pair(2))                
             icol = icol + 30
             if icol+30 > width:
-                icol = 18
+                icol = 20
                 iypos = iypos + 1
             
         
@@ -227,14 +228,14 @@ def draw_menu(stdscr):
                       'Downstairs Geo '    + rcvs('SP-1FGEOALL') + ' kW')
         stdscr.addstr(iypos + 2, icol + 35,
                       'Downstairs Geo Duty Cycle ' + rcvs('DS_DUTY_CYCLE', mult=100.) + '%')
-        stdscr.addstr(iypos + 2, icol + 70,
+        stdscr.addstr(iypos + 2, icol + 75,
                       'Downstairs Geo Period ' + rcvs('DS_PERIOD', div=60.0) + ' mins')        
         
         stdscr.addstr(iypos + 3, icol,
                       'Upstairs Geo   '   + rcvs('SP-2FGEOALL') + ' kW')
         stdscr.addstr(iypos + 3, icol + 35,
                       'Upstairs Geo Duty Cycle   ' + rcvs('US_DUTY_CYCLE', mult=100.) + '%')
-        stdscr.addstr(iypos + 3, icol + 70,
+        stdscr.addstr(iypos + 3, icol + 75,
                       'Upstairs Geo Period   ' + rcvs('US_PERIOD', div=60.0) + ' mins')                
 
 
@@ -277,6 +278,17 @@ def draw_menu(stdscr):
 def main():
     curses.wrapper(draw_menu)
 
+rows, columns = os.popen('stty size', 'r').read().split()
+    
+if int(rows) < 60 or int(columns) < 116:
+    print('Terminal size is ' + rows + ' rows  x ' + columns + ' columns')
+    print('Terminal must be >= 60 rows and >= 116 cols')
+    exit()
+
+print('foo')
+    
+
 if __name__ == "__main__":
+
     wakeup = True
     main()
