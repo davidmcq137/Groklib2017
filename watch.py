@@ -19,7 +19,16 @@ watched_files = {"read-ted.py"             : True,
                  "read-wx-WU.py"           : True,
                  "read-wx-open.py"         : True,
                  "read-nest.py"            : True,
-                 "watch-read.py"           : True}
+                 "watch-read.py"           : True,
+                 "read-remotes.py"         : True}
+
+watched_short = {"read-ted.py"             : "RT" ,
+                 "read-wx-weatherlink.py"  : "RWW",
+                 "read-wx-WU.py"           : "RWU",
+                 "read-wx-open.py"         : "RWO",
+                 "read-nest.py"            : "RN" ,
+                 "watch-read.py"           : "WR" ,
+                 "read-remotes.py"         : "RR" }
 
 def is_running(pid):        
     try:
@@ -34,13 +43,15 @@ def logfilename(progname):
 
 def start(progname):
     print('Starting', progname)
-    logfile = open(logfilename(progname), "a")
-    logfile.write("!!!!!!! Restarted " + progname + " at " + str(datetime.datetime.now()) + "\n")
-    logfile.flush()
-    command = "nohup pipenv run ./" + progname + " 2>/dev/null >> "+logfilename(progname)+" &"
+    #logfile = open(logfilename(progname), "a")
+    #logfile.write("!!!!!!! Restarted " + progname + " at " + str(datetime.datetime.now()) + "\n")
+    #logfile.flush()
+    command = 'tmux new -d -s ' + '"' + watched_short[progname] + '"' + ' "pipenv run python ' + progname + '"'
+    print("command: ", command)
+    #command = "nohup pipenv run ./" + progname + " 2>/dev/null >> "+logfilename(progname)+" &"
     retval = os.system(command)
     if retval != 0:
-        raise Exception("non-zero exit(" + str(revtal) + ": " + command)
+        raise Exception("non-zero exit(" + str(retval) + ": " + command)
 
 def get_pid(progname):
     try:

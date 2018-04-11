@@ -60,7 +60,7 @@ def data_organizer(raw_api_dict):
     except:
         print("exception on country=raw...")
         print(raw_api_dict)
-        exit()
+        return None
             
     data = dict(
 
@@ -129,6 +129,10 @@ while True:
     # print("wxdict:")
     # print(wxdict)
 
+    if wxdict == None:
+        time.sleep(120)
+        continue
+    
     print("Weather readings at: ", datetime.datetime.now())
     print("Last server update at " + wxdict['dt'] + " UTC")
     print("dtepoch: ", wxdict['dtepoch'])

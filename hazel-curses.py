@@ -8,6 +8,9 @@ import cPickle as pickle
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+# to do: check that pickle file is current .. consider that it "expires" after some time
+# so that this prog does not report things as "up" based on old pickle file
+
 Remote_Chan_Vals={}
 
 def rcvs(channel, div = 1.0, mult = 1.0, fmtstr="{0:.2f}"):
@@ -57,6 +60,7 @@ def draw_menu(stdscr):
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_BLACK)
     
     height, width = stdscr.getmaxyx()
         
@@ -77,7 +81,7 @@ def draw_menu(stdscr):
 
         # Turning on attributes for title
 
-        stdscr.attron(curses.color_pair(5))
+        stdscr.attron(curses.color_pair(6))
         stdscr.attron(curses.A_BOLD)
 
         iypos = 2
@@ -152,7 +156,7 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, cst)
         stdscr.attroff(curses.color_pair(3))
         
-        icol = 14
+        icol = 8
         iypos = iypos + 2
 
         for kk in Remote_Sys_List:
@@ -200,9 +204,12 @@ def draw_menu(stdscr):
         stdscr.addstr(iypos, 0, '{:{align}{width}}'.format('Current Weather', align='^', width = width))
         stdscr.attroff(curses.color_pair(3))
         icol = 16
-        stdscr.addstr(iypos + 2, icol,    'Outside Temperature ' + rcvs('Outside Temp') + 'F')
-        stdscr.addstr(iypos + 2, icol+30, 'Outside Humidity '    + rcvs('Humidity') + '%')
-        stdscr.addstr(iypos + 2, icol+60, 'Barometric Pressure ' + rcvs('Barometer') + ' in Hg')
+        stdscr.addstr(iypos + 2, icol,    'Outside Temperature ' +
+                      rcvs('Outside Temp', fmtstr='{0:.1f} F'))
+        stdscr.addstr(iypos + 2, icol+34, 'Outside Humidity '    +
+                      rcvs('Humidity', fmtstr='{0:.0f}%'))
+        stdscr.addstr(iypos + 2, icol+60, 'Barometric Pressure ' +
+                      rcvs('Barometer', fmtstr='{0:.2f} in Hg'))
 
         stdscr.attron(curses.color_pair(3))
         stdscr.addstr(iypos + 4, 0,
@@ -211,10 +218,14 @@ def draw_menu(stdscr):
 
         iypos = iypos + 4
         icol = 20
-        stdscr.addstr(iypos + 2, icol,      'Downstairs Temperature ' + rcvs('DS_TARGET') + 'F')
-        stdscr.addstr(iypos + 2, icol + 50, 'Downstairs Humidity '    + rcvs('DS_HUM') + '%')
-        stdscr.addstr(iypos + 3, icol,      'Upstairs Temperature '   + rcvs('ST_TEMP') + 'F')
-        stdscr.addstr(iypos + 3, icol + 50, 'Upstairs Humidity '      + rcvs('ST_HUM') + '%')        
+        stdscr.addstr(iypos + 2, icol,      'Upstairs Temperature '   +
+                      rcvs('ST_TEMP', fmtstr='{0:.1f} F'))
+        stdscr.addstr(iypos + 2, icol + 50, 'Downstairs Temperature ' +
+                      rcvs('DS_TARGET', fmtstr='{0:.1f} F'))
+        stdscr.addstr(iypos + 3, icol,      'Upstairs Humidity '      +
+                      rcvs('ST_HUM', fmtstr='{0:.0f}%'))
+        stdscr.addstr(iypos + 3, icol + 50, 'Downstairs Humidity '    +
+                      rcvs('DS_HUM', fmtstr='{0:.0f}%'))        
 
         iypos = iypos + 5
 
@@ -225,18 +236,24 @@ def draw_menu(stdscr):
         stdscr.attroff(curses.color_pair(3))
         icol = 6
         stdscr.addstr(iypos + 2, icol,
-                      'Downstairs Geo '    + rcvs('SP-1FGEOALL') + ' kW')
+                      'Downstairs Geo '    +
+                      rcvs('SP-1FGEOALL', fmtstr='{0:.1f}') + ' kW')
         stdscr.addstr(iypos + 2, icol + 35,
-                      'Downstairs Geo Duty Cycle ' + rcvs('DS_DUTY_CYCLE', mult=100.) + '%')
+                      'Downstairs Geo Duty Cycle ' +
+                      rcvs('DS_DUTY_CYCLE', mult=100., fmtstr='{0:.0f}') + '%')
         stdscr.addstr(iypos + 2, icol + 75,
-                      'Downstairs Geo Period ' + rcvs('DS_PERIOD', div=60.0) + ' mins')        
+                      'Downstairs Geo Period ' +
+                      rcvs('DS_PERIOD', div=60.0, fmtstr='{0:.0f}') + ' mins')        
         
         stdscr.addstr(iypos + 3, icol,
-                      'Upstairs Geo   '   + rcvs('SP-2FGEOALL') + ' kW')
+                      'Upstairs Geo   '   +
+                      rcvs('SP-2FGEOALL', fmtstr='{0:.1f}') + ' kW')
         stdscr.addstr(iypos + 3, icol + 35,
-                      'Upstairs Geo Duty Cycle   ' + rcvs('US_DUTY_CYCLE', mult=100.) + '%')
+                      'Upstairs Geo Duty Cycle   ' +
+                      rcvs('US_DUTY_CYCLE', mult=100., fmtstr='{0:.0f}') + '%')
         stdscr.addstr(iypos + 3, icol + 75,
-                      'Upstairs Geo Period   ' + rcvs('US_PERIOD', div=60.0) + ' mins')                
+                      'Upstairs Geo Period   ' +
+                      rcvs('US_PERIOD', div=60.0, fmtstr='{0:.0f}') + ' mins')                
 
 
         # Print list of channels being watched

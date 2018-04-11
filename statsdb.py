@@ -26,24 +26,29 @@ def statsdb(channel, value):
     return
 
 def write_channels(x_dict, c_dict, prt=False, sdb=True, div=1.0):
-    cc_dict=copy.deepcopy(c_dict)
+    #cc_dict=copy.deepcopy(c_dict) # no longer needed with mod to read_nested_dict to not use pop()
     rt = 0.0
-    for c,l in cc_dict.iteritems():
+    for c,l in c_dict.iteritems():
         s = str(read_nested_dict(x_dict, l))
         if s != 'None':
             r = float(s)/div
             rt = rt + r
             v = str(r)
+        else:
+            v = 'None'
         if prt: print(c + ': ' + v)
         if sdb: statsdb(c,v)
     return(rt)
                         
 def read_nested_dict(in_dict, keylist):
-    firstkey = keylist.pop(0)
-    idgf = in_dict.get(firstkey)
+    firstkey = keylist[0]
+    if type(in_dict) == list and type(keylist[0]) == int:
+        idgf = in_dict[firstkey]
+    else:
+        idgf = in_dict.get(firstkey)
     if idgf == None: return (None)
-    if len(keylist) > 0:
-        return(read_nested_dict(idgf, keylist))
+    if len(keylist[1:]) > 0:
+        return(read_nested_dict(idgf, keylist[1:]))
     else:
         return(idgf)
 

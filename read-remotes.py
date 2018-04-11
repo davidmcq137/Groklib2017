@@ -14,13 +14,14 @@ import cPickle as pickle
 from datadog import statsd
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
-from ISStreamer.Streamer import Streamer
+#from ISStreamer.Streamer import Streamer
 
 timeout = 600.0         # seconds before a reading, once heard from, is considered late for channels and systems
 iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
-Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime, "jenny":iftime}
+Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime,
+                   "jenny":iftime, "hellcat":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
 Remote_Chan_Vals = {}   # values of the channels
@@ -216,7 +217,7 @@ while True:
                     dlist[0] = tempstr[1:]
                 if dlist[0] in Remote_Chan_List:      # if a channel we know about
                   if Remote_Chan_List[dlist[0]] == 0: # if it got set to zero by being late then it's back
-                      print("Channel has resumed reporting: ", dlist[0])
+                      print("Channel has resumed reporting: " + str(dlist[0]) + " at: " + str(datetime.datetime.now()))
                 lrlb = len(Remote_Chan_List)    
                 Remote_Chan_List[dlist[0]] = time.time() + timeout #shazam! works if new or old :-)
                 Remote_Chan_Vals[dlist[0]] = dlist[2]
@@ -229,7 +230,7 @@ while True:
                 if len(dlist) >= 5:     # if there is a system name in the message
                     if (dlist[4] in Remote_Sys_List):
                         if Remote_Sys_List[dlist[4]] == 0: # if it got set to zero by being late
-                            print("Remote system is back up: ", dlist[4])
+                            print("Remote system is back up: ", dlist[4] + " at: " + str(datetime.datetime.now()))
                         Remote_Sys_List[dlist[4]] = time.time() + timeout
                     else:
                         print("Unknown remote system: ", dlist[4])
@@ -244,14 +245,14 @@ while True:
     latechan = False
     for chan, chan_time in Remote_Chan_List.iteritems():
         if chan_time != 0 and time.time() > chan_time:
-            print("Missing data from channel: " + chan + " - sending text")
-            ret_sms = send_sms("Missing data from Channel: "+ chan, dfm_cell) 
+            print("Missing data from channel: " + chan + " at: " +str(datetime.datetime.now()))
+            # ret_sms = send_sms("Missing data from Channel: "+ chan, dfm_cell) 
             Remote_Chan_List[chan] = 0 # just print it once, it will get reset above if it wakes up
             latechan = True # remember if a channel is late, no need to also print its system
             
     for sys_name, sys_time in Remote_Sys_List.iteritems():
         if sys_time != 0 and time.time() > sys_time:
-            print("Missing data from system: " + sys_name)
+            print("Missing data from system: " + sys_name + " at: " + str(datetime.datetime.now()))
             if not latechan:
                 ret_sms = send_sms("Missing data from System: " + sys_name, dfm_cell) 
             Remote_Sys_List[sys_name] = 0 # just print it once, it will get reset above if it wakes up
