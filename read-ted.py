@@ -15,7 +15,7 @@ import xmltodict
 
 def read_spyder(slist):
 
-    url_left  = 'http://10.0.0.35/history/export.csv?T=1&D=1&M='
+    url_left  = 'http://10.0.0.18/history/export.csv?T=1&D=1&M='
     url_right = '&C=1'
     ret_dict={}
 
@@ -43,6 +43,7 @@ def poll_ted(link):
         except:
             print("Exception on request to TED: " +
                   str(sys.exc_info()[0]) +' ['+ str(datetime.datetime.now())+']' )
+            print("Request: ", link)
             sys.stdout.flush()
             if ipoll > 1000:
                 print("Too many read errors on TED: exiting")
@@ -54,7 +55,7 @@ def poll_ted(link):
 with open('/tmp/read-ted.py.pid', 'w') as f:
     f.write(str(os.getpid()))
 
-sys_ovr="http://10.0.0.35/api/SystemOverview.xml?T=0"
+sys_ovr="http://10.0.0.18/api/SystemOverview.xml?T=0"
 
 chan_volt={'VoltageLeft' :['DialDataDetail', 'MTUVal', 'MTU1', 'Voltage'],
            'VoltageRight':['DialDataDetail', 'MTUVal', 'MTU2', 'Voltage']}

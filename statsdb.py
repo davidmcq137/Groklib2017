@@ -5,6 +5,10 @@ import time
 import os
 import platform
 import copy
+import ConfigParser
+import requests
+import datetime
+from requests.auth import HTTPBasicAuth
 
 server_address = ('10.0.0.48',10137)
 
@@ -53,3 +57,38 @@ def read_nested_dict(in_dict, keylist):
         return(idgf)
 
 
+def send_sms_ltd(body, dest_in):
+    
+    config=ConfigParser.ConfigParser()
+    osp = os.path.expanduser('~/twilio.conf')
+    config.read(osp)
+    t_acct   = config.get('KEYS', 'twilio_acct')
+    t_user   = config.get('KEYS', 'twilio_user')
+    t_pass   = config.get('KEYS', 'twilio_pass')
+    t_num    = config.get('PHONES' , 'twilio_num')
+    dfm_cell = config.get('PHONES'   , 'dfm_cell')
+    lrm_cell = config.get('PHONES'   , 'lrm_cell')
+
+    if dest_in == 'dfm_cell':
+        dest = dfm_cell
+    elif dest_in == 'lrm_cell':
+        dest = lrm_cell
+    else:
+        return(-1)
+    
+    timestamp = datetime.datetime.now()
+    print("About to send_sms:[" + str(timestamp) + "] sent \"" + body + "\" to " + dest)
+    
+    try:
+        ret_req = requests.post( "https://api.twilio.com/2010-04-01/Accounts/" + 
+                    t_acct + "/Messages.json", auth = HTTPBasicAuth(t_user, t_pass),
+                    data = {'To':   dest,'From': t_num,'Body': "[" + str(timestamp) + "] " + body},
+                    timeout=2.0)
+    except requests.exceptions.ConnectionError :
+        print('ConnectionError exception in Twilio API call: ' + str(sys.exc_info()[0]) +
+              ' ['+str(datetime.datetime.now())+']' )
+        ret_req = -1
+        
+    #print("Requests returns: ", ret_req)
+
+    return ret_req

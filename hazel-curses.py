@@ -61,6 +61,7 @@ def draw_menu(stdscr):
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    curses.init_pair(7, curses.COLOR_BLACK, curses.COLOR_RED)
     
     height, width = stdscr.getmaxyx()
         
@@ -127,7 +128,15 @@ def draw_menu(stdscr):
         
         # Render status bar
         
-        stdscr.attron(curses.color_pair(3))
+        ahora = datetime.datetime.now()
+        age = ahora - rtime
+        agesecs = age.total_seconds()
+
+        if agesecs < 60 :  # warn with red text if pkl date is older than 1 min
+            stdscr.attron(curses.color_pair(3))
+        else:
+            stdscr.attron(curses.color_pair(7))
+            
         stdscr.addstr(height-1, 0, statusbarstr)
         stdscr.addstr(height-1, len(statusbarstr), " " * (width - len(statusbarstr) - 1))
         stdscr.attroff(curses.color_pair(3))

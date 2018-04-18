@@ -39,25 +39,49 @@ def is_running(pid):
         return True
 
 def logfilename(progname):
-    return progname+".log"
+    return progname + ".log"
 
 def start(progname):
-    print('Starting', progname)
-    #logfile = open(logfilename(progname), "a")
-    #logfile.write("!!!!!!! Restarted " + progname + " at " + str(datetime.datetime.now()) + "\n")
-    #logfile.flush()
-    command = 'tmux new -d -s ' + '"' + watched_short[progname] + '"' + ' "pipenv run python ' + progname + '"'
-    print("command: ", command)
-    #command = "nohup pipenv run ./" + progname + " 2>/dev/null >> "+logfilename(progname)+" &"
+    print('Starting ', progname)
+
+    command = 'tmux new -d -s ' + '"' + watched_short[progname] \
+              + '"' + ' "pipenv run python ' + progname + '"'
+    print("tmux new command: ", command)
+
     retval = os.system(command)
     if retval != 0:
-        raise Exception("non-zero exit(" + str(retval) + ": " + command)
+        raise Exception("tmux new: non-zero exit: " + str(retval) + ": " + command)
+
+    ld = datetime.datetime.now()
+    log_date_str = ld.strftime('-%Y%m%d-%H%M')
+    
+    command = 'tmux pipe-pane -t ' + '"' + watched_short[progname] + '"' \
+              + ' -o "cat >>~/LogFiles/' + watched_short[progname] + log_date_str + '.log"'
+    print("tmux pipe-pane command: ", command)
+    retval = os.system(command)
+    if retval != 0:
+        raise Exception("tmux pipe-pane: non-zero exit: " + str(retval) + ": " + command)
+    
+    command = 'tmux list-panes -t ' + '"' + watched_short[progname] + '"' \
+              + " -F '#{pane_pid}' > /tmp/" + progname + ".pid"
+    
+    print("tmux list-panes command: ", command)
+    retval = os.system(command)
+    if retval != 0:
+        raise Exception("tmux list-panes: non-zero exit: " + str(retval) + ": " + command)
+
+    print("Start complete for: ", progname)
+
+
 
 def get_pid(progname):
     try:
         with open("/tmp/" + progname + ".pid") as pidfile:
-            return int(pidfile.read())
+            j = int(pidfile.read())
+            # print('get_pid returning: ', j)
+            return j
     except IOError:
+        # print('get_pid IOError')
         return None        
     
 def handle(progname):
@@ -86,8 +110,12 @@ class Handler(FileSystemEventHandler):
 
 if __name__ == "__main__":
     for name, _ in watched_files.iteritems():
+        # print('main - name: ', name)
         pid = get_pid(name)
+        # print('main - pid: ', pid)
+        # note: next line depends on not calling is_running if pid is false!
         if not pid or not is_running(pid):
+            # print('main - calling start with: ', name)
             start(name)
         
     observer = Observer()

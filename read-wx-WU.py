@@ -201,7 +201,8 @@ while True:
             time.sleep(30) # don't hammer WU too many times in a minute
             
         print('precipi_f_3d_tot is: ', precipi_f_3d_tot)
-
+        body = 'Weather Precip update - 3 Day Future Precip: ' + str(qpf3) + ' in.'
+        statsdb.send_sms_ltd(body, 'dfm_cell')
 
     sys.stdout.flush()
     time.sleep(120)
