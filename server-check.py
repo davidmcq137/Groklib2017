@@ -7,14 +7,12 @@ import time
 
 hazel_up = True
 
-j=0
+
 while True:
-    j=j+1
+
     ispc = subprocess.call(["ping", "-c",  "3", "10.0.0.48"])
-    if j == 3:
-        ispc = 1
         
-    print ("ispc: ", ispc)
+    print ("ping return code: ", ispc)
 
     if ispc == 0 and hazel_up == False:
         hazel_up = True
@@ -24,5 +22,5 @@ while True:
         hazel_up = False
         statsdb.send_sms_ltd ("Hazel went down!", "dfm_cell")
 
-    time.sleep(10)
+    time.sleep(60)
     
