@@ -10,7 +10,11 @@ import ConfigParser
 import os
 import statsdb
 
-DS_POWER = 5970.0; US_POWER = 6550.0; BS_POWER = 10800.0; AVG_EST_POWER = 0.0
+#DS_POWER = 5970.0; US_POWER = 6550.0; BS_POWER = 10800.0; AVG_EST_POWER = 0.0
+DS_HEAT_POWER = 5970.0; US_HEAT_POWER = 6550.0; BS_HEAT_POWER = 10800.0; AVG_EST_POWER = 0.0
+DS_COOL_POWER = 6000.0; US_COOL_POWER = 5780.0
+BS_POWER = 10800.0
+
 LAST_DS = 0.0; LAST_US = 0.0
 ds_rising_time = 0.0; ds_period = 0.0; ds_high_time = 0.0; ds_duty_cycle = 0.0; ds_rise_num = 0.0
 us_rising_time = 0.0; us_period = 0.0; us_high_time = 0.0; us_duty_cycle = 0.0; us_rise_num = 0.0
@@ -71,8 +75,11 @@ while True:
         for structure in napi.structures:
             for device in structure.thermostats:
                 # print(device.name)
+                sd = str(device.hvac_state)
+                print("Device name, state: ", device.name, sd)
                 if (device.name=='Downstairs'):
-                    if (str(device.hvac_state) == 'heating'):
+                    DS_HEATCOOL = sd
+                    if (sd == 'heating' or sd == 'cooling'):
                          DS_HVAC_STATE = 1.0
                     else:
                          DS_HVAC_STATE = 0.1
@@ -86,7 +93,8 @@ while True:
                     # This is so we can see which devices are on when looking at Datadog
                     
                 if (device.name=='Master Bedroom'):
-                    if (str(device.hvac_state) == 'heating'):
+                    US_HEATCOOL = sd
+                    if (sd == 'heating' or sd == 'cooling'):
                         MB_HVAC_STATE = 0.1
                     else:
                         MB_HVAC_STATE = 0.0
@@ -95,18 +103,18 @@ while True:
                     MB_TARGET = device.target                        
 
                 if (device.name=='Upstairs'):
-                   if (str(device.hvac_state) == 'heating'):
+                   if (sd == 'heating' or sd == 'cooling'):
                        UP_HVAC_STATE = 0.1
                    else:
                        UP_HVAC_STATE = 0.0
                 if (device.name=='Studio'):
-                    if (str(device.hvac_state) == 'heating'):
+                    if (sd == 'heating' or sd == 'cooling'):
                         ST_HVAC_STATE = 0.1
                     else:
                         ST_HVAC_STATE = 0.0
                     ST_TEMP = device.temperature
                     ST_HUM = device.humidity
-                    ST_TARGET = device.target
+                    ST_TARGET_TEST = device.target
 
                 if (device.name=='Basement (Shop)'):
                     if (str(device.hvac_state) == 'heating'):
@@ -119,6 +127,15 @@ while True:
     else:
         print ("NEST api call complete: ["+str(datetime.datetime.now())+"]")
 
+        # This is a kludge: if NEST set to heat/cool, it returns a lowhightuple rather than an int for
+        # target temp. Need to update this code to intelligently select which target to compare to TEMP
+        # for now just grab the 0th element (Low)
+
+        if type(ST_TARGET_TEST) == type(ST_TEMP):
+            ST_TARGET = ST_TARGET_TEST
+        else:
+            ST_TARGET = int(ST_TARGET_TEST[0])
+
         ST_DELTA = ST_TEMP - ST_TARGET
 
         US_HVAC_STATE = MB_HVAC_STATE + UP_HVAC_STATE + ST_HVAC_STATE
@@ -129,14 +146,28 @@ while True:
 
         if US_HVAC_STATE > 1.0:
             US_CORR = 1.0
+            if US_HEATCOOL == 'heating':
+                US_POWER = US_HEAT_POWER
+            else:
+                US_POWER = US_COOL_POWER
         else:
             US_CORR = 0.0
+            US_POWER = 0.0
 
         if DS_HVAC_STATE  < 1.0:
             DS_CORR = 0.0
+            DS_POWER = 0.0
         else:
             DS_CORR = 1.0
+            if DS_HEATCOOL == 'heating':
+                DS_POWER = DS_HEAT_POWER
+            else:
+                DS_POWER = DS_COOL_POWER
 
+        print('US_HEATCOOL, DS_HEATCOOL: ', US_HEATCOOL, DS_HEATCOOL)
+        print('US_POWER, DS_POWER: ', US_POWER, DS_POWER)
+        print('US_CORR, DS_CORR: ', US_CORR, DS_CORR)
+        
         EST_POWER = DS_CORR * DS_POWER + US_CORR * US_POWER + BS_HVAC_STATE * BS_POWER
 
         # Now compute duty cycle for last complete period of the thermostat (on to on)

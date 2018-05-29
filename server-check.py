@@ -16,11 +16,11 @@ while True:
 
     if ispc == 0 and hazel_up == False:
         hazel_up = True
-        statsdb.send_sms_ltd ("Hazel came back up!", "dfm_cell")
+        statsdb.send_sms_ltd ("Hazel not responding to ping", "dfm_cell")
         
     if ispc != 0 and hazel_up == True:
         hazel_up = False
-        statsdb.send_sms_ltd ("Hazel went down!", "dfm_cell")
+        statsdb.send_sms_ltd ("Hazel resumed responding to ping", "dfm_cell")
 
     time.sleep(60)
     

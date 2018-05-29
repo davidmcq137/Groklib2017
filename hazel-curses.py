@@ -19,8 +19,11 @@ def rcvs(channel, div = 1.0, mult = 1.0, fmtstr="{0:.2f}"):
     if ds == None or ds == 'None':
         drs='None'
     else:
-        df = float(ds)*mult/div
-        drs = fmtstr.format(df)
+        if ds[:3] != 'Low':
+            df = float(ds)*mult/div
+            drs = fmtstr.format(df)
+        else:
+            drs = '????'
     return drs
 
     
@@ -143,7 +146,7 @@ def draw_menu(stdscr):
         
         for kk in Remote_Chan_Vals:
             ds = Remote_Chan_Vals.get(kk)
-            if ds == None or ds == 'None':
+            if ds == None or ds == 'None' or ds[:3] == 'Low':
                 rcv[kk]='None'
             else:
                 df = float(ds)

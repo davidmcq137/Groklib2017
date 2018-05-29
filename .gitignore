@@ -9,3 +9,5 @@ nohup.*
 *.pkl
 *.json
 *.db-journal
+rain.data
+

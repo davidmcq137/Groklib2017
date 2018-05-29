@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import datetime
+import subprocess
 import statsdb
 
 config = ConfigParser.ConfigParser()
@@ -202,7 +203,17 @@ while True:
             
         print('precipi_f_3d_tot is: ', precipi_f_3d_tot)
         body = 'Weather Precip update - 3 Day Future Precip: ' + str(qpf3) + ' in.'
+        wp = 0.40 * precipi_f_3d_tot + 0.60 * qpf3
+        print('Weighted precip past/future: ', wp)
+        body = body + ' Weighted past/future: ' + str(wp) + ' in.'
         statsdb.send_sms_ltd(body, 'dfm_cell')
+        with open('rain.data', 'w') as f:
+            ss = str(wp) + ' , ' + str(datetime.datetime.now())
+            f.write(str(ss))
+            f.close()
+        ispc = subprocess.call(["scp", "rain.data", "pi@catalina:rain.data"])
+        print('ispc return: ', ispc)                               
+
 
     sys.stdout.flush()
     time.sleep(120)
