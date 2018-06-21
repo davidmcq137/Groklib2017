@@ -95,21 +95,28 @@ while True:
     
     if 'forecast' in fcst_api_dict:
         dstr = fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['date']['pretty']
-        #print ("Forecast date: ", dstr)
-    
-        fcst_high = float(fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['high']['fahrenheit'])
-        #print ("Fcst Hi: ", fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['high']['fahrenheit'])
-
-        fcst_low = float(fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['low']['fahrenheit'])
-        #print ("Fcst Lo: ", fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['low']['fahrenheit'])
-
+        print ("Forecast date: ", dstr)
+        ffs = fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['high']['fahrenheit']
+        try:
+            fcst_high = float(ffs)
+        except ValueError:
+            print('Value Error on fcst_high: ffs: ', ffs)
+            fcst_high = 0.
+                  
+        ffs = fcst_api_dict['forecast']['simpleforecast']['forecastday'][0]['low']['fahrenheit']
+        try:
+            fcst_low = float(ffs)
+        except ValueError:
+            print('Value Error on fcst_low: ffs: ', ffs)
+            fcst_low = 0.
+            
         qpf3 = 0.0
         for q in range(4):
             tmp  = fcst_api_dict['forecast']['simpleforecast']['forecastday'][q]['qpf_allday']['in']
             if tmp != None:
                 qpf3 = qpf3 + fcst_api_dict['forecast']['simpleforecast']['forecastday'][q]['qpf_allday']['in']
             
-        print ('Rain3d: ', qpf3)
+        print ('3 day ahead rain forecast (Rain3d): ', qpf3)
 
     else:
         print("<forecast> key not in response from WU")
@@ -146,6 +153,7 @@ while True:
         skip_curr = SKPCMAX # read again next iteration
         skipstat = True
         
+
     if not skipstat:
         statsdb.statsdb("Outside Temp", temp_f)
         statsdb.statsdb("Barometer", pressure_in)
@@ -212,7 +220,7 @@ while True:
             f.write(str(ss))
             f.close()
         ispc = subprocess.call(["scp", "rain.data", "pi@catalina:rain.data"])
-        print('ispc return: ', ispc)                               
+        print('Sent rain.data to pi@catalina - ispc return: ', ispc)                               
 
 
     sys.stdout.flush()

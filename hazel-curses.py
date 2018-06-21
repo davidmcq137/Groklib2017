@@ -176,7 +176,7 @@ def draw_menu(stdscr):
                 stdscr.addstr(iypos, icol, str(kk), curses.color_pair(4))
             else:
                 stdscr.addstr(iypos, icol, str(kk), curses.color_pair(2))                
-            icol = icol + 20
+            icol = icol + 16
             
 
         # Add here: watch_process .. list of running processes

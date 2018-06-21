@@ -21,7 +21,7 @@ iftime = time.time() + timeout
                         # post a time check <timeout> secs in the future to see if remote
                         # systems are up
 Remote_Sys_List = {"Hazel":iftime, "thunderbolt":iftime, "camel":iftime, "spad":iftime,
-                   "jenny":iftime, "hellcat":iftime}
+                   "jenny":iftime, "hellcat":iftime,"catalina":iftime}
 
 Remote_Chan_List = {}   # list of channels we are receiving
 Remote_Chan_Vals = {}   # values of the channels
@@ -152,6 +152,7 @@ print ("SQLite read socket and insert loop started on port " + str(PORT))
 
 loop_time = 0.0
 last_time = 0.0
+sockerr_count = 0
 
 while True:
     loop_time = time.time()
@@ -171,7 +172,17 @@ while True:
             #print ("CONNECTION_LIST is: ", CONNECTION_LIST)
         else:
             # Data recieved from client, process it
-            data = sock.recv(RECV_BUFFER)
+            try:
+                data = sock.recv(RECV_BUFFER)
+            except socket.error:
+                print('Caught <socket.error>')
+                sockerr_count = sockerr_count + 1
+                if sockerr_count > 20:
+                    print('Exiting due to excessive socket errors')
+                    exit()
+                continue
+            else:
+                sockerr_count = 0
             if data:
                 sock.close()
                 CONNECTION_LIST.remove(sock)
