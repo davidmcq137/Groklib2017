@@ -53,6 +53,9 @@ while True:
 
         try:
             rc = requests.get(url_str)
+            with open('/tmp/weatherlink.text', 'w') as fw:
+                fw.write(rc.text)
+            #print(rc.text)
             curr_api_dict = xmltodict.parse(rc.text)
             errs=0
         except:
@@ -122,12 +125,29 @@ while True:
     print("Observation age: ",
           curr_api_dict.get('current_observation').get('davis_current_observation').get('observation_age'))
 
+
+    sm1 = curr_api_dict.get('current_observation').get('davis_current_observation').get('soil_moisture_1')
+    print("Soil Moisture 1: ", sm1)
+
+    sm2 = curr_api_dict.get('current_observation').get('davis_current_observation').get('soil_moisture_2')
+    print("Soil Moisture 2: ", sm2)
+
+    ts1 = curr_api_dict.get('current_observation').get('davis_current_observation').get('temp_soil_1')
+    print("Soil Temp 1: ", ts1)
+
+    ts2 = curr_api_dict.get('current_observation').get('davis_current_observation').get('temp_soil_2')
+    print("Soil Temp 2: ", ts2)
+
     statsdb.statsdb("Davis Outside Temp", temp_f)
     statsdb.statsdb("Davis Barometer", pressure_in)
     statsdb.statsdb("Davis Humidity", relative_humidity)
     statsdb.statsdb("Davis Wind Speed", wind_mph)
     statsdb.statsdb("Davis Wind Direction", wind_degrees)
     statsdb.statsdb("Davis Garage Temp", lower_garage)
+    statsdb.statsdb("Davis Soil Moisture 1", sm1)
+    statsdb.statsdb("Davis Soil Moisture 2", sm2)
+    statsdb.statsdb("Davis Soil Temp 1", ts1)
+    statsdb.statsdb("Davis Soil Temp 2", ts2)
 
     sys.stdout.flush()
     time.sleep(120)

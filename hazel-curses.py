@@ -282,7 +282,7 @@ def draw_menu(stdscr):
         stdscr.attron(curses.color_pair(4))
         
         icol = 7
-        irow = iypos + 3
+        irow = iypos + 2
 
         for kk in rcls:
             if Remote_Chan_List[kk] > 0:
